@@ -41,7 +41,7 @@ App {
 	property string toonbotLastResponseStatus : "N/A"
 
 	property bool refreshGetMeDone : false					// GetMe succesvol received
-
+	property int numberMessagesOnScreen : (isNxt ? 15 : 12)  
 
 	// signal, used to update the listview 
 	signal toonbotUpdated()
@@ -643,7 +643,8 @@ App {
 				}
 				break;
           case "/THERMOSTAAT":
-				var temp = parseFloat(subcmd);
+				var tmpsubcmd = subcmd.replace(/,/g, '.');  // replace comma by a dot
+				var temp = parseFloat(tmpsubcmd);
 				if (temp >= 6.0 && temp <= 30.0 ) {
 					setStatus(update_id, "Ok")
 					temp =roundToHalf(temp);
@@ -681,8 +682,8 @@ App {
                                 result: "",
 								fromname: firstName });
 		// remove oldest message from screen
-        if (toonbotScreen.toonBotListModel.count >= 12) {
-            toonbotScreen.toonBotListModel.remove(11,1);
+        if (toonbotScreen.toonBotListModel.count >= numberMessagesOnScreen) {
+            toonbotScreen.toonBotListModel.remove(numberMessagesOnScreen-1,1);
         }
     }
 

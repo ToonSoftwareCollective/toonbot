@@ -86,7 +86,7 @@ Screen {
 				leftMargin: 45
 				bottom: parent.bottom
 			}
-			width :70
+			width: isNxt ? 100 :70
 		}
 		Text {
 			id: headerText3
@@ -98,7 +98,7 @@ Screen {
 				leftMargin: 5
 				bottom: parent.bottom
 			}
-			width :300
+			width: isNxt ? 400 :300
 		}
 		Text {
 			id: headerText4
@@ -138,7 +138,7 @@ Screen {
                     Text {
                         id: txtTime
                         text: time
-                        font.pixelSize:  16
+                        font.pixelSize:  isNxt ? 20 : 16
                         font.family: qfont.regular.name
 //                        color: colors.clockTileColor
                         anchors {
@@ -151,7 +151,7 @@ Screen {
                     Text {
                         id: txtStatus
                         text: status
-                        font.pixelSize:  16
+                        font.pixelSize:  isNxt ? 20 : 16
                         font.family: qfont.regular.name
 //                        color: colors.clockTileColor
                         anchors {
@@ -159,13 +159,13 @@ Screen {
                             left: txtTime.right
                             leftMargin: 5
                         }
-                        width: 70
+                        width: isNxt ? 100 : 70
                     }
 
                     Text {
                         id: txtCmd
                         text: cmd + ":" + subcmd
-                        font.pixelSize:  16
+                        font.pixelSize:  isNxt ? 20 : 16
                         font.family: qfont.regular.name
 //                        color: colors.clockTileColor
                         anchors {
@@ -174,13 +174,13 @@ Screen {
                             leftMargin: 5
                         }
 						clip: true
-                        width: 300
+                        width: isNxt ? 400 :300
                     }
 
                     Text {
                         id: txtFirstname
                         text: fromname
-                        font.pixelSize:  16
+                        font.pixelSize:  isNxt ? 20 : 16
                         font.family: qfont.regular.name
 //                        color: colors.clockTileColor
                         anchors {
