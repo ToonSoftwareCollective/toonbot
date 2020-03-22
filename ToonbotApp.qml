@@ -79,14 +79,15 @@ App {
 		} catch(e) {
 		}
 
+		startGetTelegramUpdatesTimer();
+
 		// Only when a Telegram token is there
 		if ( toonbotTelegramToken.length > 0 ) {
 			readLastUpdateId();
-			refreshGetMe();
 		} else {
-			tileStatus = "Token mist, zie instellingen"
+			enableRefresh = false;
+			tileStatus = "Token mist, zie instellingen";
 		}
-
 	}
 
 	function init() {
@@ -223,6 +224,9 @@ App {
 				var doc = new XMLHttpRequest();
 				doc.open("PUT", "file:///tmp/toonbot-response2.json");
 				doc.send(xmlhttp.responseText);
+
+				var now = new Date();
+				toonbotLastUpdateTime = now.toLocaleString('nl-NL'); 
 			
                 if (xmlhttp.status === 200) {
                     console.log("********* ToonBot getTelegramUpdates response " + xmlhttp.responseText );
@@ -241,9 +245,6 @@ App {
                     console.log("********* ToonBot getTelegramUpdates fout opgetreden.");
 					tileStatus = "Ophalen messages mislukt.....";
                 }
-                if (enableRefresh) {
-					startGetTelegramUpdatesTimer();
-				}
             }
         }
         xmlhttp.send();
@@ -266,7 +267,6 @@ App {
         console.log("********* ToonBot processTelegramUpdates results: " + telegramData['result'].length);
 
 		var now = new Date();
-		toonbotLastUpdateTime = now.toLocaleString('nl-NL'); 
 
         for (i = 0; i <telegramData['result'].length; i++) {
 
@@ -783,17 +783,22 @@ App {
 	
 	Timer {
         id: getTelegramUpdatesTimer
-        interval: toonbotRefreshIntervalSeconds * 1000;
+        interval: 10 * 1000;		// first update after 10 seconds
         triggeredOnStart: false
         running: false
-        repeat: false
+        repeat: true
         onTriggered: {
             console.log("********* ToonBot getTelegramUpdatesTimer triggered");
+			interval = toonbotRefreshIntervalSeconds * 1000;
             if (enableRefresh) {
 				if (refreshGetMeDone) {
 					getTelegramUpdates();
 				} else {
 					refreshGetMe();
+				}
+			} else {
+				if ( toonbotTelegramToken.length > 0 ) {
+					tileStatus = "Verversing uitgeschakeld";
 				}
 			}
         }

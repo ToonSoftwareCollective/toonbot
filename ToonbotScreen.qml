@@ -34,7 +34,6 @@ Screen {
 
 	function refreshData() {
 		console.log("********* ToonBot refreshData");
-		app.stopGetTelegramUpdatesTimer();
 		refreshButton.enabled = false;
 		app.toonbotLastResponseStatus = 0;  // reset otherwise wrong messages shown
 
