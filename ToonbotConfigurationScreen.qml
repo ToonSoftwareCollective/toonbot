@@ -19,6 +19,7 @@ Screen {
 
 	onCustomButtonClicked: {
 		app.saveSettings();
+		app.refreshGetMeDone = false;   // Start over. needed when token is changed
 		hide();
 		app.toonbotScreen.refreshData();
 	}
@@ -171,11 +172,11 @@ Screen {
 		onSelectedChangedByUser: {
 			if (isSwitchedOn) {
 				app.enableRefresh = true;
-				app.stopGetTelegramUpdatesTimer();
-				app.startGetTelegramUpdatesTimer();
+//				app.stopGetTelegramUpdatesTimer();
+//				app.startGetTelegramUpdatesTimer();
 			} else {
 				app.enableRefresh = false;
-				app.stopGetTelegramUpdatesTimer();
+//				app.stopGetTelegramUpdatesTimer();
 			}
 		}
 	}
