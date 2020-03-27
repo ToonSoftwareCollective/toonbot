@@ -314,7 +314,7 @@ App {
 
             if (debugOutput) console.log("********* ToonBot processTelegramUpdates i:" + i );
             if (debugOutput) console.log("********* ToonBot processTelegramUpdates date:" + date );
-            if (debugOutput) console.log("********* ToonBot processTelegramUpdates description:" + text );
+            if (debugOutput) console.log("********* ToonBot processTelegramUpdates text:" + text );
             if (debugOutput) console.log("********* ToonBot processTelegramUpdates fromName:" + fromName );
 
 			messageDate = new Date(date*1000);	
@@ -327,24 +327,9 @@ App {
 				continue;
 			}
 
-            var command = text.replace(/\s/g,'').split(":",2);
-            if (debugOutput) console.log("********* ToonBot processTelegramUpdates command:" + command + " len: " + command.length);
-            if (command.length === 2) {
-                var cmd = command[0];
-                var subcmd = command[1];
+			addCommandToList(text, update_id, fromName);
+			processCommand(text,update_id);
 
-                if (debugOutput) console.log("********* ToonBot processTelegramUpdates cmd: " + cmd + " subcmd: " + subcmd );
-
-                addCommandToList(cmd, subcmd, update_id, fromName);
-                processCommand(cmd,subcmd,update_id);
-
-            } else {
-                if (debugOutput) console.log("********* ToonBot processTelegramUpdates received unkown command:" + text );
-                addCommandToList(text,"",update_id, fromName);
-                setStatus(update_id, "Fout")
-                sendTelegramUnknown(text);
-
-            }
         }
 
         if (update_id != lastUpdateId ) {
@@ -475,16 +460,16 @@ App {
 		if (debugOutput) console.log("********* ToonBot setProgram: " + program);
 		
 		switch(program.toUpperCase()) {
-			case "COMFORT":
+			case "C":			// comfort
 				state = 0;
 				break;
-			case "THUIS":
+			case "T":			//	thuis
 				state = 1;
 				break;
-			case "SLAPEN":
+			case "S":			// slapen
 				state = 2;
 				break;
-			case "WEG":
+			case "W":			// weg
 				state = 3;
 				break;
 			default:
@@ -525,10 +510,10 @@ App {
 		if (debugOutput) console.log("********* ToonBot setState: " + state);
 		
 		switch(state.toUpperCase()) {
-			case "UIT":
+			case "U":   				// uit
 				tmpState = "0";
 				break;
-			case "AAN":
+			case "A":					// aan
 				tmpState = "1";
 				break;
 			default:
@@ -627,54 +612,74 @@ App {
 	   }
 	}
 	
-    function processCommand(cmd,subcmd,update_id) {
-		if (debugOutput) console.log("********* ToonBot processCommand command: " + cmd );
+    function processCommand(text,update_id) {
+		var subcmd;
+		var cmd;
 
-		tileLastcmd = cmd + ":" + subcmd;
+		if (debugOutput) console.log("********* ToonBot processCommand command: " + text );
+
+		var command = text.replace(/\s/g,'').split("_",2);
+
+		if (debugOutput) console.log("********* ToonBot processCommand command:" + command + " len: " + command.length);
+		cmd = command[0];
+		if (command.length === 2) {
+			subcmd = command[1];
+		} else {
+			subcmd = "";
+		}
+
+		if (debugOutput) console.log("********* ToonBot processCommand cmd: " + cmd + " subcmd: " + subcmd );
+
+		tileLastcmd = text;
 
         switch(cmd.toUpperCase()) {
 			case "/INFO":
-				setStatus(update_id, "Ok")
-				sendTelegramAck(cmd);
-				processCommandInfo();
-				break;
-			case "/PROGRAMMA":
-				if (subcmd.toUpperCase() === "COMFORT" || subcmd.toUpperCase() === "THUIS" ||subcmd.toUpperCase() === "WEG" ||subcmd.toUpperCase() === "SLAPEN") {
+				if (subcmd.length == 0) {
 					setStatus(update_id, "Ok")
-					sendTelegramAck(cmd);
+					sendTelegramAck(text);
+					processCommandInfo();
+				} else {
+					setStatus(update_id, "Fout")
+					sendTelegramUnknown(text);
+				}
+				break;
+			case "/PROG":
+				if (subcmd.toUpperCase() === "C" || subcmd.toUpperCase() === "T" ||subcmd.toUpperCase() === "W" ||subcmd.toUpperCase() === "S") {
+					setStatus(update_id, "Ok")
+					sendTelegramAck(text);
 					processCommandProgram(subcmd);
 				} else {
 					setStatus(update_id, "Fout")
-					sendTelegramUnknown(cmd+":"+subcmd);
+					sendTelegramUnknown(text);
 				}
 				break;
-          case "/AUTOPROGRAMMA":
-				if (subcmd.toUpperCase() === "AAN" || subcmd.toUpperCase() === "UIT" ) {
+          case "/AUTO":
+				if (subcmd.toUpperCase() === "A" || subcmd.toUpperCase() === "U" ) {
 					setStatus(update_id, "Ok")
-					sendTelegramAck(cmd);
+					sendTelegramAck(text);
 					processCommandAutoprogram(subcmd);
 				} else {
 					setStatus(update_id, "Fout")
-					sendTelegramUnknown(cmd+":"+subcmd);
+					sendTelegramUnknown(text);
 				}
 				break;
-          case "/THERMOSTAAT":
-				var tmpsubcmd = subcmd.replace(/,/g, '.');  // replace comma by a dot
-				var temp = parseFloat(tmpsubcmd);
+          case "/THERM":
+				var temp = parseFloat(subcmd);
+				if (temp >=60) temp = temp / 10;
 				if (temp >= 6.0 && temp <= 30.0 ) {
 					setStatus(update_id, "Ok")
 					temp =roundToHalf(temp);
-					sendTelegramAck(cmd);
+					sendTelegramAck(text);
 					processCommandChangetemp(temp);
 				} else {
 					setStatus(update_id, "Fout")
-					sendTelegramUnknown(cmd+":"+subcmd);
+					sendTelegramUnknown(text);
 				}
 				break;
           default:
 				if (debugOutput) console.log("********* ToonBot processCommand unknown command:" + cmd );
 				setStatus(update_id, "Fout")
-				sendTelegramUnknown(cmd+":"+subcmd);
+				sendTelegramUnknown(text);
         }
     }
 
@@ -688,12 +693,11 @@ App {
         }
     }
 
-    function addCommandToList(cmd,subcmd,update_id,firstName) {
+    function addCommandToList(command,update_id,firstName) {
         if (debugOutput) console.log("********* ToonBot addCommandToList");
         toonbotScreen.toonBotListModel.insert(0,{ time: (new Date().toLocaleString('nl-NL')),
                                 updateId: update_id,
-                                cmd: cmd,
-                                subcmd: subcmd,
+                                command: command,
                                 status: "",
                                 result: "",
 								fromname: firstName });
@@ -707,11 +711,18 @@ App {
         if (debugOutput) console.log("********* ToonBot sendTelegramUnknown");
         var messageText = "<b>Onbekend commando ontvangen: <i>" + cmd + "</i></b>\n" +
                           "De volgende commando's zijn mogelijk:\n" +
-                          "  /info:\n" +
-                          "  /programma:comfort|thuis|weg|slapen\n" +
-                          "  /autoprogramma:aan|uit\n" +
-                          "  /thermostaat:graden (6.0-30.0)\n\n" +
-                          "  Voorbeeld: /programma:slapen";
+                          "  /info    Vraag Toon gegevens op\n" +
+                          "  /prog_c  Activeer programma Comfort\n" +
+                          "  /prog_t  Activeer programma Thuis\n" +
+                          "  /prog_w  Activeer programma Weg\n" +
+                          "  /prog_s  Activeer programma Slapen\n" +
+                          "  /auto_a  Zet auto programma aan\n" +
+                          "  /auto_u  Zet auto programma uit\n" +
+                          "  /therm_xx (6-30) Pas de thermostaat aan. Voeg een 5 toe voor een halve graad.\n\n" +
+                          "  Voorbeeld:\n" +
+                          "    /prog_s    voor programma Comfort\n" +
+                          "    /therm_19  voor thermostaat op 19 graden\n" +
+                          "    /therm_195 voor thermostaat op 19.5 graden\n";
 
         sendTelegramMessage(messageText);
     }

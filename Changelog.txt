@@ -1,3 +1,6 @@
+Version 1.1.0
+- change Telegram commands to make /setcommands possible
+
 Version 1.0.2
 - disable console log messages by default
 

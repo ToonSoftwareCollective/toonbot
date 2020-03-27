@@ -163,7 +163,7 @@ Screen {
 
                     Text {
                         id: txtCmd
-                        text: cmd + ":" + subcmd
+                        text: command
                         font.pixelSize:  isNxt ? 20 : 16
                         font.family: qfont.regular.name
 //                        color: colors.clockTileColor
