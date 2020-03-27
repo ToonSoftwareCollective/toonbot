@@ -10,7 +10,7 @@ Screen {
 
 	// Function (triggerd by a signal) updates the toonbot list model and the header text
 	function updateToonbotList() {
-		console.log("********* ToonBot updateToonbotList");
+		if (app.debugOutput) console.log("********* ToonBot updateToonbotList");
 	}
 
 	function refreshButtonEnabled(enabled) {
@@ -24,7 +24,7 @@ Screen {
 	}
 
 	onShown: {
-		console.log("********* ToonBot ToonbotScreen onShown");
+		if (app.debugOutput) console.log("********* ToonBot ToonbotScreen onShown");
 		addCustomTopRightButton("Instellingen");
 	}
 
@@ -33,7 +33,7 @@ Screen {
 	}
 
 	function refreshData() {
-		console.log("********* ToonBot refreshData");
+		if (app.debugOutput) console.log("********* ToonBot refreshData");
 		refreshButton.enabled = false;
 		app.toonbotLastResponseStatus = 0;  // reset otherwise wrong messages shown
 
@@ -236,7 +236,7 @@ Screen {
         running: false
         repeat: false
         onTriggered: {
-            console.log("********* ToonBot setEnableRefreshButtonTimer start");
+            if (app.debugOutput) console.log("********* ToonBot setEnableRefreshButtonTimer start");
             refreshButton.enabled = true;
         }
 
