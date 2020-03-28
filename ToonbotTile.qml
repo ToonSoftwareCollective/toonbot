@@ -82,6 +82,8 @@ Tile {
 			top: cmdText.bottom
 			horizontalCenter: parent.horizontalCenter
 		}
+		width : parent.width - 5
+		horizontalAlignment : Text.AlignHCenter
 		font.pixelSize: isNxt ? 20 : 16
 		font.family: qfont.italic.name
        	visible: !dimState

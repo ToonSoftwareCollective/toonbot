@@ -43,6 +43,9 @@ App {
 	property bool refreshGetMeDone : false					// GetMe succesvol received
 	property int numberMessagesOnScreen : (isNxt ? 15 : 12)  
 
+	property bool debugOutput : false						// Show console messages. Turn on in settings file !
+
+
 	// signal, used to update the listview 
 	signal toonbotUpdated()
 
@@ -51,7 +54,6 @@ App {
 		id: toonbotSettingsFile
 		source: "file:///mnt/data/tsc/toonbot.userSettings.json"
  	}
-
 
 	FileIO {
 		id: toonbotLastUpdateIdFile
@@ -76,6 +78,12 @@ App {
 			toonbotTelegramToken = toonbotSettingsJson['Token'];		
 			toonbotRefreshIntervalSeconds = toonbotSettingsJson['RefreshIntervalSeconds'];	
 			
+			if (toonbotSettingsJson['DebugOn'] == "Yes") {
+				debugOutput = true
+			} else {
+				debugOutput = false
+			}
+			
 		} catch(e) {
 		}
 
@@ -99,10 +107,11 @@ App {
 
 	function saveSettings() {
 		// save user settings
-		console.log("********* ToonBot saveSettings");
+		if (debugOutput) console.log("********* ToonBot saveSettings");
 
 		var tmpTrayIcon = "";
 		var tmpRefreshOn = "";
+		var tmpDebugOn = "";
 		
 		if (enableSystray == true) {
 			tmpTrayIcon = "Yes";
@@ -114,12 +123,19 @@ App {
 		} else {
 			tmpRefreshOn = "No";
 		}
+		if (debugOutput == true) {
+			tmpDebugOn = "Yes";
+		} else {
+			tmpDebugOn = "No";
+		}
+
 		
  		var tmpUserSettingsJson = {
 			"Token"      				: toonbotTelegramToken,
 			"RefreshIntervalSeconds"	: toonbotRefreshIntervalSeconds,
  			"TrayIcon"      			: tmpTrayIcon,
-			"RefreshOn"					: tmpRefreshOn
+			"RefreshOn"					: tmpRefreshOn,
+			"DebugOn"					: tmpDebugOn
 		}
 
   		var doc = new XMLHttpRequest();
@@ -130,7 +146,7 @@ App {
 
 	// get some information about Bot and test Token
 	function refreshGetMe() {
-        console.log("********* ToonBot refreshGetMe");
+        if (debugOutput) console.log("********* ToonBot refreshGetMe");
 
         // clear Tile
 		tileStatus = "Ophalen GetMe.....";
@@ -138,7 +154,7 @@ App {
         var xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", "https://api.telegram.org/bot"+toonbotTelegramToken+"/getMe", true);
         xmlhttp.onreadystatechange = function() {
-            console.log("********* ToonBot refreshGetMe readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
+            if (debugOutput) if (debugOutput) console.log("********* ToonBot refreshGetMe readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
             if (xmlhttp.readyState === XMLHttpRequest.DONE ) {
 
 				// save response
@@ -148,12 +164,12 @@ App {
 
 				if (xmlhttp.status == 200) {
 					var response = xmlhttp.responseText;
-					console.log("********* ToonBot refreshGetMe response" + response );
+					if (debugOutput) if (debugOutput) console.log("********* ToonBot refreshGetMe response" + response );
 					// if no json but html received
 					try {
 						getMeData = JSON.parse(xmlhttp.responseText);
 						if (getMeData['ok']) {
-							console.log("********* ToonBot refreshGetMe telegramData data found");
+							if (debugOutput) console.log("********* ToonBot refreshGetMe telegramData data found");
 
 							tileBotName = getMeData['result']['first_name'];
 							// username is optional
@@ -167,18 +183,18 @@ App {
 						} else {
 							tileStatus = "Ophalen GetMe mislukt.....";
 							refreshGetMeTimer.start();  // try again
-							console.log("********* ToonBot refreshGetMe failed, not ok received. try again");
+							if (debugOutput) console.log("********* ToonBot refreshGetMe failed, not ok received. try again");
 						}
 					}
 					catch(e) {
 						tileStatus = "Ophalen GetMe mislukt.....";
 						refreshGetMeTimer.start();  // try again
-						console.log("********* ToonBot refreshGetMe failed, no JSON received. try again");
+						if (debugOutput) console.log("********* ToonBot refreshGetMe failed, no JSON received. try again");
 					}
 				} else {
 					tileStatus = "Ophalen GetMe mislukt.....";
 					refreshGetMeTimer.start();  // try again
-					console.log("********* ToonBot refreshGetMe failed, no http status 200. try again");
+					if (debugOutput) console.log("********* ToonBot refreshGetMe failed, no http status 200. try again");
 				}
             }
         }
@@ -189,7 +205,7 @@ App {
     function getTelegramUpdates() {
 		var url;
 
-		console.log("********* ToonBot getTelegramUpdates");
+		if (debugOutput) console.log("********* ToonBot getTelegramUpdates");
 
 		if ( toonbotTelegramToken.length == 0 ) {
 			tileStatus = "Token mist, zie instellingen"
@@ -202,20 +218,20 @@ App {
 
 		if (lastUpdateId.length > 0) {
 		   var updId = parseInt(lastUpdateId) + 1;
-		   console.log("********* ToonBot getTelegramUpdates use lastUpdateId: " + updId);
+		   if (debugOutput) console.log("********* ToonBot getTelegramUpdates use lastUpdateId: " + updId);
            url = "https://api.telegram.org/bot"+toonbotTelegramToken+"/getUpdates?allowed_updates=[\"message\"]&offset=" + updId;
         } else {
            url = "https://api.telegram.org/bot"+toonbotTelegramToken+"/getUpdates?allowed_updates=[\"message\"]&offset=-1";
-		   console.log("********* ToonBot getTelegramUpdates use offset=-1: " );
+		   if (debugOutput) console.log("********* ToonBot getTelegramUpdates use offset=-1: " );
         }
 		
 		// Important: allowed_updates= will be remembered, even if it is removed again. Reset with allowed_updates=[]  (empty array)
 		
-	    console.log("********* ToonBot getTelegramUpdates url: " + url);
+	    if (debugOutput) console.log("********* ToonBot getTelegramUpdates url: " + url);
 		
 		xmlhttp.open("GET", url, true);
         xmlhttp.onreadystatechange = function() {
-            console.log("********* ToonBot getTelegramUpdates readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
+            if (debugOutput) console.log("********* ToonBot getTelegramUpdates readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
             if (xmlhttp.readyState === XMLHttpRequest.DONE ) {
 			
 				toonbotLastResponseStatus = xmlhttp.status;
@@ -229,20 +245,20 @@ App {
 				toonbotLastUpdateTime = now.toLocaleString('nl-NL'); 
 			
                 if (xmlhttp.status === 200) {
-                    console.log("********* ToonBot getTelegramUpdates response " + xmlhttp.responseText );
+                    if (debugOutput) console.log("********* ToonBot getTelegramUpdates response " + xmlhttp.responseText );
 
                     telegramData = JSON.parse(xmlhttp.responseText);
 
                     if (telegramData['ok'] && telegramData['result'].length > 0) {
-                        console.log("********* ToonBot getTelegramUpdates telegramData data found");
+                        if (debugOutput) console.log("********* ToonBot getTelegramUpdates telegramData data found");
 						tileStatus = "Verwerken messages.....";
                         processTelegramUpdates();
                     } else {
-                        console.log("********* ToonBot getTelegramUpdates telegramData data found but empty");
+                        if (debugOutput) console.log("********* ToonBot getTelegramUpdates telegramData data found but empty");
 						tileStatus = "Gereed";
                     }
                 } else {
-                    console.log("********* ToonBot getTelegramUpdates fout opgetreden.");
+                    if (debugOutput) console.log("********* ToonBot getTelegramUpdates fout opgetreden.");
 					tileStatus = "Ophalen messages mislukt.....";
                 }
             }
@@ -252,7 +268,7 @@ App {
 
 	function getSecondsBetweenDates(endDate, startDate) {
 		var diff = endDate.getTime() - startDate.getTime();
-		console.log("********* ToonBot getSecondsBetweenDates diff: " + (diff/1000));
+		if (debugOutput) console.log("********* ToonBot getSecondsBetweenDates diff: " + (diff/1000));
 		return (diff / 1000);
 	}
 	
@@ -264,21 +280,21 @@ App {
 		var timediff;
 		var fromName;
 
-        console.log("********* ToonBot processTelegramUpdates results: " + telegramData['result'].length);
+        if (debugOutput) console.log("********* ToonBot processTelegramUpdates results: " + telegramData['result'].length);
 
 		var now = new Date();
 
         for (i = 0; i <telegramData['result'].length; i++) {
 
             update_id = telegramData['result'][i]['update_id'];
-            console.log("********* ToonBot processTelegramUpdates update_id:" + update_id );
+            if (debugOutput) console.log("********* ToonBot processTelegramUpdates update_id:" + update_id );
 
             if( !telegramData['result'][i].hasOwnProperty('message')){
-                console.log("********* ToonBot processTelegramUpdates object message not found. Skip this one.");
+                if (debugOutput) console.log("********* ToonBot processTelegramUpdates object message not found. Skip this one.");
                 continue;
             }
             if( !telegramData['result'][i]['message'].hasOwnProperty('text')){
-                console.log("********* ToonBot processTelegramUpdates object text not found. Skip this one.");
+                if (debugOutput) console.log("********* ToonBot processTelegramUpdates object text not found. Skip this one.");
                 continue;
             }
 
@@ -286,7 +302,7 @@ App {
 				
 			// get current chatid. can be different when using a group
 			chatId = telegramData['result'][i]['message']['chat']['id']
-			console.log("********* ToonBot processTelegramUpdates chatId:" + chatId );
+			if (debugOutput) console.log("********* ToonBot processTelegramUpdates chatId:" + chatId );
 
             var date = telegramData['result'][i]['message']['date'];
             var text = telegramData['result'][i]['message']['text'];
@@ -296,10 +312,10 @@ App {
 			}
 			catch(e) {}
 
-            console.log("********* ToonBot processTelegramUpdates i:" + i );
-            console.log("********* ToonBot processTelegramUpdates date:" + date );
-            console.log("********* ToonBot processTelegramUpdates description:" + text );
-            console.log("********* ToonBot processTelegramUpdates fromName:" + fromName );
+            if (debugOutput) console.log("********* ToonBot processTelegramUpdates i:" + i );
+            if (debugOutput) console.log("********* ToonBot processTelegramUpdates date:" + date );
+            if (debugOutput) console.log("********* ToonBot processTelegramUpdates text:" + text );
+            if (debugOutput) console.log("********* ToonBot processTelegramUpdates fromName:" + fromName );
 
 			messageDate = new Date(date*1000);	
 			timediff = getSecondsBetweenDates(now,messageDate);
@@ -307,28 +323,13 @@ App {
 			// do not process too old messages 
 			if ( timediff > (toonbotRefreshIntervalSeconds * 10)) {
 				// discard message, too old
-				console.log("********* ToonBot processTelegramUpdates discard message");
+				if (debugOutput) console.log("********* ToonBot processTelegramUpdates discard message");
 				continue;
 			}
 
-            var command = text.replace(/\s/g,'').split(":",2);
-            console.log("********* ToonBot processTelegramUpdates command:" + command + " len: " + command.length);
-            if (command.length === 2) {
-                var cmd = command[0];
-                var subcmd = command[1];
+			addCommandToList(text, update_id, fromName);
+			processCommand(text,update_id);
 
-                console.log("********* ToonBot processTelegramUpdates cmd: " + cmd + " subcmd: " + subcmd );
-
-                addCommandToList(cmd, subcmd, update_id, fromName);
-                processCommand(cmd,subcmd,update_id);
-
-            } else {
-                console.log("********* ToonBot processTelegramUpdates received unkown command:" + text );
-                addCommandToList(text,"",update_id, fromName);
-                setStatus(update_id, "Fout")
-                sendTelegramUnknown(text);
-
-            }
         }
 
         if (update_id != lastUpdateId ) {
@@ -340,28 +341,28 @@ App {
 
 
     function getThermostatInfo() {
-		console.log("********* ToonBot getThermostatInfo");
+		if (debugOutput) console.log("********* ToonBot getThermostatInfo");
 
 		var xmlhttp = new XMLHttpRequest();
 		
 		xmlhttp.open("GET", "http://localhost/happ_thermstat?action=getThermostatInfo", true);
         xmlhttp.onreadystatechange = function() {
-            console.log("********* ToonBot getThermostatInfo readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
+            if (debugOutput) console.log("********* ToonBot getThermostatInfo readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
             if (xmlhttp.readyState === XMLHttpRequest.DONE ) {
 		
                 if (xmlhttp.status === 200) {
-                    console.log("********* ToonBot getThermostatInfo response " + xmlhttp.responseText );
+                    if (debugOutput) console.log("********* ToonBot getThermostatInfo response " + xmlhttp.responseText );
 
                     thermostatInfoData = JSON.parse(xmlhttp.responseText);
 
                     if (thermostatInfoData['result'] === "ok" ) {
-                        console.log("********* ToonBot getThermostatInfo thermostatInfoData data found");
+                        if (debugOutput) console.log("********* ToonBot getThermostatInfo thermostatInfoData data found");
                         processThermostatInfo();
                     } else {
-                        console.log("********* ToonBot getThermostatInfo thermostatInfoData data found but status not ok");
+                        if (debugOutput) console.log("********* ToonBot getThermostatInfo thermostatInfoData data found but status not ok");
                     }
                 } else {
-                    console.log("********* ToonBot getThermostatInfo fout opgetreden.");
+                    if (debugOutput) console.log("********* ToonBot getThermostatInfo fout opgetreden.");
 					tileStatus = "Ophalen gegevens mislukt.....";
                 }
             }
@@ -429,13 +430,13 @@ App {
 		nextState = getStateText(thermostatInfoData['nextState']);
 		nextTime = new Date (thermostatInfoData['nextTime'] * 1000);
 		
-		console.log("********* ToonBot processThermostatInfo currentTemp:" + currentTemp );
-		console.log("********* ToonBot processThermostatInfo currentSetpoint:" + currentSetpoint );
-		console.log("********* ToonBot processThermostatInfo programState:" + programState );
-		console.log("********* ToonBot processThermostatInfo activeState:" + activeState );
-		console.log("********* ToonBot processThermostatInfo nextProgram:" + nextProgram );
-		console.log("********* ToonBot processThermostatInfo nextState:" + nextState );
-		console.log("********* ToonBot processThermostatInfo nextTime:" + nextTime );
+		if (debugOutput) console.log("********* ToonBot processThermostatInfo currentTemp:" + currentTemp );
+		if (debugOutput) console.log("********* ToonBot processThermostatInfo currentSetpoint:" + currentSetpoint );
+		if (debugOutput) console.log("********* ToonBot processThermostatInfo programState:" + programState );
+		if (debugOutput) console.log("********* ToonBot processThermostatInfo activeState:" + activeState );
+		if (debugOutput) console.log("********* ToonBot processThermostatInfo nextProgram:" + nextProgram );
+		if (debugOutput) console.log("********* ToonBot processThermostatInfo nextState:" + nextState );
+		if (debugOutput) console.log("********* ToonBot processThermostatInfo nextTime:" + nextTime );
 	
 		message = "<b>Status Toon:</b>\n" + 
 					  "  Temperatuur: <b>" + currentTemp + "</b> graden\n" +
@@ -456,46 +457,46 @@ App {
 		var responseData;
 		var state;
 
-		console.log("********* ToonBot setProgram: " + program);
+		if (debugOutput) console.log("********* ToonBot setProgram: " + program);
 		
 		switch(program.toUpperCase()) {
-			case "COMFORT":
+			case "C":			// comfort
 				state = 0;
 				break;
-			case "THUIS":
+			case "T":			//	thuis
 				state = 1;
 				break;
-			case "SLAPEN":
+			case "S":			// slapen
 				state = 2;
 				break;
-			case "WEG":
+			case "W":			// weg
 				state = 3;
 				break;
 			default:
 				return;
 		}	
-		console.log("********* ToonBot setProgram");
+		if (debugOutput) console.log("********* ToonBot setProgram");
 		var responseData;
 
 		var xmlhttp = new XMLHttpRequest();
 		
 		xmlhttp.open("GET", "http://localhost/happ_thermstat?action=changeSchemeState&state=2&temperatureState=" + state, true);
         xmlhttp.onreadystatechange = function() {
-            console.log("********* ToonBot setProgram readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
+            if (debugOutput) console.log("********* ToonBot setProgram readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
             if (xmlhttp.readyState === XMLHttpRequest.DONE ) {
                 if (xmlhttp.status === 200) {
-                    console.log("********* ToonBot setProgram response " + xmlhttp.responseText );
+                    if (debugOutput) console.log("********* ToonBot setProgram response " + xmlhttp.responseText );
 
                     responseData = JSON.parse(xmlhttp.responseText);
 
                     if (responseData['result'] === "ok" ) {
-                        console.log("********* ToonBot setProgram succeeded");
+                        if (debugOutput) console.log("********* ToonBot setProgram succeeded");
                     } else {
-                        console.log("********* ToonBot setProgram failed");
+                        if (debugOutput) console.log("********* ToonBot setProgram failed");
                     }
 
                 } else {
-                    console.log("********* ToonBot setProgram fout opgetreden.");
+                    if (debugOutput) console.log("********* ToonBot setProgram fout opgetreden.");
                 }
             }
         }
@@ -506,13 +507,13 @@ App {
 		var responseData;
 		var tmpState;
 
-		console.log("********* ToonBot setState: " + state);
+		if (debugOutput) console.log("********* ToonBot setState: " + state);
 		
 		switch(state.toUpperCase()) {
-			case "UIT":
+			case "U":   				// uit
 				tmpState = "0";
 				break;
-			case "AAN":
+			case "A":					// aan
 				tmpState = "1";
 				break;
 			default:
@@ -520,25 +521,25 @@ App {
 		}	
 		var xmlhttp = new XMLHttpRequest();
 
-		console.log("********* ToonBot setState http://localhost/happ_thermstat?action=changeSchemeState&state=" + tmpState);
+		if (debugOutput) console.log("********* ToonBot setState http://localhost/happ_thermstat?action=changeSchemeState&state=" + tmpState);
 		
 		xmlhttp.open("GET", "http://localhost/happ_thermstat?action=changeSchemeState&state=" + tmpState, true);
         xmlhttp.onreadystatechange = function() {
-            console.log("********* ToonBot setState readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
+            if (debugOutput) console.log("********* ToonBot setState readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
             if (xmlhttp.readyState === XMLHttpRequest.DONE ) {
                 if (xmlhttp.status === 200) {
-                    console.log("********* ToonBot setState response " + xmlhttp.responseText );
+                    if (debugOutput) console.log("********* ToonBot setState response " + xmlhttp.responseText );
 
                     responseData = JSON.parse(xmlhttp.responseText);
 
                     if (responseData['result'] === "ok" ) {
-                        console.log("********* ToonBot setState succeeded");
+                        if (debugOutput) console.log("********* ToonBot setState succeeded");
                     } else {
-                        console.log("********* ToonBot setState failed");
+                        if (debugOutput) console.log("********* ToonBot setState failed");
                     }
 
                 } else {
-                    console.log("********* ToonBot setState fout opgetreden.");
+                    if (debugOutput) console.log("********* ToonBot setState fout opgetreden.");
                 }
             }
         }
@@ -550,27 +551,27 @@ App {
 		var responseData;
 		var tmpTemp = temp * 100;
 
-		console.log("********* ToonBot setTemp temp: " + temp);
+		if (debugOutput) console.log("********* ToonBot setTemp temp: " + temp);
 		
 		var xmlhttp = new XMLHttpRequest();
 		
 		xmlhttp.open("GET", "http://localhost/happ_thermstat?action=setSetpoint&Setpoint=" + tmpTemp, true);
         xmlhttp.onreadystatechange = function() {
-            console.log("********* ToonBot setTemp readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
+            if (debugOutput) console.log("********* ToonBot setTemp readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
             if (xmlhttp.readyState === XMLHttpRequest.DONE ) {
                 if (xmlhttp.status === 200) {
-                    console.log("********* ToonBot setTemp response " + xmlhttp.responseText );
+                    if (debugOutput) console.log("********* ToonBot setTemp response " + xmlhttp.responseText );
 
                     responseData = JSON.parse(xmlhttp.responseText);
 
                     if (responseData['result'] === "ok" ) {
-                        console.log("********* ToonBot setTemp succeeded");
+                        if (debugOutput) console.log("********* ToonBot setTemp succeeded");
                     } else {
-                        console.log("********* ToonBot setTemp failed");
+                        if (debugOutput) console.log("********* ToonBot setTemp failed");
                     }
 
                 } else {
-                    console.log("********* ToonBot setTemp fout opgetreden.");
+                    if (debugOutput) console.log("********* ToonBot setTemp fout opgetreden.");
                 }
             }
         }
@@ -611,59 +612,79 @@ App {
 	   }
 	}
 	
-    function processCommand(cmd,subcmd,update_id) {
-		console.log("********* ToonBot processCommand command: " + cmd );
+    function processCommand(text,update_id) {
+		var subcmd;
+		var cmd;
 
-		tileLastcmd = cmd + ":" + subcmd;
+		if (debugOutput) console.log("********* ToonBot processCommand command: " + text );
+
+		var command = text.replace(/\s/g,'').split("_",2);
+
+		if (debugOutput) console.log("********* ToonBot processCommand command:" + command + " len: " + command.length);
+		cmd = command[0];
+		if (command.length === 2) {
+			subcmd = command[1];
+		} else {
+			subcmd = "";
+		}
+
+		if (debugOutput) console.log("********* ToonBot processCommand cmd: " + cmd + " subcmd: " + subcmd );
+
+		tileLastcmd = text;
 
         switch(cmd.toUpperCase()) {
 			case "/INFO":
-				setStatus(update_id, "Ok")
-				sendTelegramAck(cmd);
-				processCommandInfo();
-				break;
-			case "/PROGRAMMA":
-				if (subcmd.toUpperCase() === "COMFORT" || subcmd.toUpperCase() === "THUIS" ||subcmd.toUpperCase() === "WEG" ||subcmd.toUpperCase() === "SLAPEN") {
+				if (subcmd.length == 0) {
 					setStatus(update_id, "Ok")
-					sendTelegramAck(cmd);
+					sendTelegramAck(text);
+					processCommandInfo();
+				} else {
+					setStatus(update_id, "Fout")
+					sendTelegramUnknown(text);
+				}
+				break;
+			case "/PROG":
+				if (subcmd.toUpperCase() === "C" || subcmd.toUpperCase() === "T" ||subcmd.toUpperCase() === "W" ||subcmd.toUpperCase() === "S") {
+					setStatus(update_id, "Ok")
+					sendTelegramAck(text);
 					processCommandProgram(subcmd);
 				} else {
 					setStatus(update_id, "Fout")
-					sendTelegramUnknown(cmd+":"+subcmd);
+					sendTelegramUnknown(text);
 				}
 				break;
-          case "/AUTOPROGRAMMA":
-				if (subcmd.toUpperCase() === "AAN" || subcmd.toUpperCase() === "UIT" ) {
+          case "/AUTO":
+				if (subcmd.toUpperCase() === "A" || subcmd.toUpperCase() === "U" ) {
 					setStatus(update_id, "Ok")
-					sendTelegramAck(cmd);
+					sendTelegramAck(text);
 					processCommandAutoprogram(subcmd);
 				} else {
 					setStatus(update_id, "Fout")
-					sendTelegramUnknown(cmd+":"+subcmd);
+					sendTelegramUnknown(text);
 				}
 				break;
-          case "/THERMOSTAAT":
-				var tmpsubcmd = subcmd.replace(/,/g, '.');  // replace comma by a dot
-				var temp = parseFloat(tmpsubcmd);
+          case "/THERM":
+				var temp = parseFloat(subcmd);
+				if (temp >=60) temp = temp / 10;
 				if (temp >= 6.0 && temp <= 30.0 ) {
 					setStatus(update_id, "Ok")
 					temp =roundToHalf(temp);
-					sendTelegramAck(cmd);
+					sendTelegramAck(text);
 					processCommandChangetemp(temp);
 				} else {
 					setStatus(update_id, "Fout")
-					sendTelegramUnknown(cmd+":"+subcmd);
+					sendTelegramUnknown(text);
 				}
 				break;
           default:
-				console.log("********* ToonBot processCommand unknown command:" + cmd );
+				if (debugOutput) console.log("********* ToonBot processCommand unknown command:" + cmd );
 				setStatus(update_id, "Fout")
-				sendTelegramUnknown(cmd+":"+subcmd);
+				sendTelegramUnknown(text);
         }
     }
 
     function setStatus(update_id, status) {
-        console.log("********* ToonBot setStatus status: " + status);
+        if (debugOutput) console.log("********* ToonBot setStatus status: " + status);
         for (var n=0; n < toonbotScreen.toonBotListModel.count; n++) {
             if (toonbotScreen.toonBotListModel.get(n).updateId === update_id) {
                 toonbotScreen.toonBotListModel.set(n, {"status": status});
@@ -672,12 +693,11 @@ App {
         }
     }
 
-    function addCommandToList(cmd,subcmd,update_id,firstName) {
-        console.log("********* ToonBot addCommandToList");
+    function addCommandToList(command,update_id,firstName) {
+        if (debugOutput) console.log("********* ToonBot addCommandToList");
         toonbotScreen.toonBotListModel.insert(0,{ time: (new Date().toLocaleString('nl-NL')),
                                 updateId: update_id,
-                                cmd: cmd,
-                                subcmd: subcmd,
+                                command: command,
                                 status: "",
                                 result: "",
 								fromname: firstName });
@@ -688,53 +708,60 @@ App {
     }
 
     function sendTelegramUnknown(cmd) {
-        console.log("********* ToonBot sendTelegramUnknown");
+        if (debugOutput) console.log("********* ToonBot sendTelegramUnknown");
         var messageText = "<b>Onbekend commando ontvangen: <i>" + cmd + "</i></b>\n" +
                           "De volgende commando's zijn mogelijk:\n" +
-                          "  /info:\n" +
-                          "  /programma:comfort|thuis|weg|slapen\n" +
-                          "  /autoprogramma:aan|uit\n" +
-                          "  /thermostaat:graden (6.0-30.0)\n\n" +
-                          "  Voorbeeld: /programma:slapen";
+                          "  /info    Vraag Toon gegevens op\n" +
+                          "  /prog_c  Activeer programma Comfort\n" +
+                          "  /prog_t  Activeer programma Thuis\n" +
+                          "  /prog_w  Activeer programma Weg\n" +
+                          "  /prog_s  Activeer programma Slapen\n" +
+                          "  /auto_a  Zet auto programma aan\n" +
+                          "  /auto_u  Zet auto programma uit\n" +
+                          "  /therm_xx (6-30) Pas de thermostaat aan. Voeg een 5 toe voor een halve graad.\n\n" +
+                          "  Voorbeeld:\n" +
+                          "    /prog_s    voor programma Comfort\n" +
+                          "    /therm_19  voor thermostaat op 19 graden\n" +
+                          "    /therm_195 voor thermostaat op 19.5 graden\n";
 
         sendTelegramMessage(messageText);
     }
 
     function sendTelegramAck(cmd) {
-        console.log("********* ToonBot sendTelegramAck");
+        if (debugOutput) console.log("********* ToonBot sendTelegramAck");
         var messageText = "Toon heeft het commando: <b><i>" + cmd + "</i></b> ontvangen."
 
         sendTelegramMessage(messageText);
     }
 
     function sendTelegramMessage(messageText) {
-        console.log("********* ToonBot sendTelegramMessage");
+        if (debugOutput) console.log("********* ToonBot sendTelegramMessage");
 
         if (chatId.length === 0) {
-            console.log("********* ToonBot sendTelegramMessage no chatId. Cannot send message");
+            if (debugOutput) console.log("********* ToonBot sendTelegramMessage no chatId. Cannot send message");
 			return;
         }
 
         var text = encodeURI(messageText);
 
-        console.log("********* ToonBot sendTelegramMessage Verzenden bericht: " + text);
+        if (debugOutput) console.log("********* ToonBot sendTelegramMessage Verzenden bericht: " + text);
 
         var xmlhttp = new XMLHttpRequest();
         xmlhttp.open("GET", "https://api.telegram.org/bot" + toonbotTelegramToken + "/sendMessage?chat_id=" + chatId + "&text=" + text + "&parse_mode=HTML", true);
         xmlhttp.onreadystatechange = function() {
-            console.log("********* ToonBot sendTelegramMessage readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
+            if (debugOutput) console.log("********* ToonBot sendTelegramMessage readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
             if (xmlhttp.readyState === XMLHttpRequest.DONE ) {
                 if (xmlhttp.status === 200) {
-                    console.log("********* ToonBot sendTelegramMessage response " + xmlhttp.responseText );
+                    if (debugOutput) console.log("********* ToonBot sendTelegramMessage response " + xmlhttp.responseText );
                     telegramData = JSON.parse(xmlhttp.responseText);
 
                     if (telegramData.count > 0 ) {
-                        console.log("********* ToonBot sendTelegramMessage telegramData data found");
+                        if (debugOutput) console.log("********* ToonBot sendTelegramMessage telegramData data found");
                     } else {
-                        console.log("********* ToonBot sendTelegramMessage telegramData data found but empty");
+                        if (debugOutput) console.log("********* ToonBot sendTelegramMessage telegramData data found but empty");
                     }
                 } else {
-                    console.log("********* ToonBot sendTelegramMessage fout opgetreden.");
+                    if (debugOutput) console.log("********* ToonBot sendTelegramMessage fout opgetreden.");
                 }
             }
         }
@@ -756,11 +783,11 @@ App {
 		} catch(e) {
 			lastUpdateId = "";
 		}
-		console.log("********* ToonBot readLastUpdateId id: " + lastUpdateId );
+		if (debugOutput) console.log("********* ToonBot readLastUpdateId id: " + lastUpdateId );
     }
 
     function saveLastUpdateId(id){  
-		console.log("********* ToonBot saveLastUpdateId id: " + id);
+		if (debugOutput) console.log("********* ToonBot saveLastUpdateId id: " + id);
 
 		var doc = new XMLHttpRequest();
 		doc.open("PUT", "file:///tmp/toonbot-lastUpdateId.txt");
@@ -775,7 +802,7 @@ App {
 		running: false
 		repeat: false
 		onTriggered: {
-			console.log("********* ToonBot refreshGetMeTimer start " + (new Date().toLocaleString('nl-NL')));
+			if (debugOutput) console.log("********* ToonBot refreshGetMeTimer start " + (new Date().toLocaleString('nl-NL')));
 			refreshGetMe();
 		}
 	}
@@ -788,7 +815,7 @@ App {
         running: false
         repeat: true
         onTriggered: {
-            console.log("********* ToonBot getTelegramUpdatesTimer triggered");
+            if (debugOutput) console.log("********* ToonBot getTelegramUpdatesTimer triggered");
 			interval = toonbotRefreshIntervalSeconds * 1000;
             if (enableRefresh) {
 				if (refreshGetMeDone) {
