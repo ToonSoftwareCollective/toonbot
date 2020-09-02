@@ -15,6 +15,7 @@ Screen {
 		enableRefreshToggle.isSwitchedOn = app.enableRefresh;
 		tokenLabel.inputText = app.toonbotTelegramToken;
 		intervalLabel.inputText = app.toonbotRefreshIntervalSeconds;
+		enableSecurityToggle.isSwitchedOn = app.enableSecurity;
 	}
 
 	onCustomButtonClicked: {
@@ -70,7 +71,7 @@ Screen {
 			left: parent.left
 			leftMargin: 40
 			top: parent.top
-			topMargin: 30
+			topMargin: 10
 		}
 
 		onClicked: {
@@ -158,7 +159,7 @@ Screen {
 		anchors {
 			left: tokenLabel.left
 			top: intervalLabel.bottom
-			topMargin: 10
+			topMargin: 5
 		}
 	}
 	
@@ -172,14 +173,23 @@ Screen {
 		onSelectedChangedByUser: {
 			if (isSwitchedOn) {
 				app.enableRefresh = true;
-//				app.stopGetTelegramUpdatesTimer();
-//				app.startGetTelegramUpdatesTimer();
 			} else {
 				app.enableRefresh = false;
-//				app.stopGetTelegramUpdatesTimer();
 			}
 		}
 	}
+
+	StandardButton {
+		id: btnHelpRefresh
+		text: "?"
+		anchors.left: enableRefreshToggle.right
+		anchors.bottom: enableRefreshToggle.bottom
+		anchors.leftMargin: 10
+		onClicked: {
+			qdialog.showDialog(qdialog.SizeLarge, "Het ontvangen van Telegram berichten", "Als je deze uitzet worden er geen Telegram berichten meer uitgelezen.\n", "Sluiten");
+		}
+	}
+
 
 	Text {
 		id: enableSystrayLabel
@@ -191,7 +201,7 @@ Screen {
 		anchors {
 			left: tokenLabel.left
 			top: enableRefreshLabel.bottom
-			topMargin: 10
+			topMargin: 3
 		}
 	}
 	
@@ -212,11 +222,79 @@ Screen {
 	}
 
 	Text {
+		id: enableSecurityLabel
+		width: isNxt ? 240 : 200
+		height: isNxt ? 45 : 36
+		text: "Beveilging aan"
+		font.family: qfont.semiBold.name
+		font.pixelSize: isNxt ? 25 : 20
+		anchors {
+			left: tokenLabel.left
+			top: enableSystrayLabel.bottom
+			topMargin: 3
+		}
+	}
+	
+	OnOffToggle {
+		id: enableSecurityToggle
+		height: isNxt ? 45 : 36
+		anchors.left: enableSecurityLabel.right
+		anchors.leftMargin: 10
+		anchors.top: enableSecurityLabel.top
+		leftIsSwitchedOn: false
+		onSelectedChangedByUser: {
+			if (isSwitchedOn) {
+				app.enableSecurity = true;
+			} else {
+				app.enableSecurity = false;
+			}
+		}
+	}
+
+	StandardButton {
+		id: btnHelpSecurity
+		text: "?"
+		anchors.left: enableSecurityToggle.right
+		anchors.bottom: enableSecurityToggle.bottom
+		anchors.leftMargin: 10
+		onClicked: {
+			qdialog.showDialog(qdialog.SizeLarge, "Beveiliging", "Als je deze uitzet kan iedereen, die de ToonBot weet te vinden, commando's sturen en worden deze verwerkt. \n" +
+												  "Door deze aan te zetten worden alleen berichten van gebruikers of groepen die in de toegestane gebruikerslijst staan verwerkt." +
+												  " Berichten van anderen worden wel getoond maar niet verwerkt. ", "Sluiten");
+		}
+	}
+
+
+	StandardButton {
+		id: securityButton
+		text: "Beheer toegang"
+
+		anchors {
+			left: intervalButton.right
+			leftMargin: 20
+			top: enableSecurityLabel.top
+		}
+
+		rightClickMargin: 2
+		bottomClickMargin: 5
+
+		selected: false
+		visible : true
+
+		onClicked: {
+			if (app.toonbotSecurityScreen) {
+				app.toonbotSecurityScreen.show();
+			}
+		}
+	}
+
+	Text {
 		id: uitlegToken
 		text: "Voor de werking van deze app is het nodig dat er in Telegram een bot wordt aangemaakt.\n" +
 			  "Ga hiervoor naar https://core.telegram.org/bots#6-botfather (of google 'Telegram bot') en volg de instructies. " +
 			  "Maak een nieuwe bot aan en vul het ontvangen token hierboven bij token in.\n" +
-			  "Voeg de bot toe in Telegram en stuur het commando '/start'. Na het opslaan van de instellingen zou de app moeten werken.\n\n" +
+			  "Voeg de bot toe in Telegram en stuur het commando '/start'. Na het opslaan van de instellingen zou de app moeten werken. " +
+			  "Voor meer informatie zoek dan naar 'domoticaforum toonbot' (https://www.domoticaforum.eu/viewtopic.php?f=99&t=12734)\n" +
 			  "Verstuur een willekeurig karakter in Telegram voor een overzicht van de commando's die je kunt gebruiken."
 		  
        	width: parent.width - 50
@@ -224,9 +302,7 @@ Screen {
 		anchors {
 			left: parent.left
 			leftMargin: 20
-			top: enableSystrayLabel.bottom
-//			topMargin: 15
-//			horizontalCenter: parent.horizontalCenter
+			top: enableSecurityLabel.bottom
 		}
 		font {
 			family: qfont.semiBold.name

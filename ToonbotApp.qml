@@ -11,9 +11,11 @@ App {
 	
 	property url toonbotScreenUrl : "ToonbotScreen.qml"
 	property url toonbotConfigurationScreenUrl : "ToonbotConfigurationScreen.qml"
+	property url toonbotSecurityScreenUrl : "ToonbotSecurityScreen.qml"
 	property url trayUrl : "ToonbotTray.qml"
 
 	property ToonbotConfigurationScreen toonbotConfigurationScreen
+	property ToonbotSecurityScreen toonbotSecurityScreen
 	property ToonbotScreen toonbotScreen
 
 	// for Tile
@@ -33,6 +35,7 @@ App {
     property int toonbotRefreshIntervalSeconds  : 60	// interval to retrieve telegram messages
 	property bool enableSystray : false
 	property bool enableRefresh : false					// enable retrieving Telegram messages
+	property bool enableSecurity : false				// enable security (check chatid's)
 
 	// user settings from config file
 	property variant toonbotSettingsJson 
@@ -45,6 +48,8 @@ App {
 
 	property bool debugOutput : false						// Show console messages. Turn on in settings file !
 
+	property variant usersNames : []  				// array of allowed user or group names
+	property variant usersChatIds : []				// array of allowed corresponding chatid
 
 	// signal, used to update the listview 
 	signal toonbotUpdated()
@@ -83,6 +88,25 @@ App {
 			} else {
 				debugOutput = false
 			}
+
+			if (toonbotSettingsJson['Security'] == "Yes") {
+				enableSecurity = true
+			} else {
+				enableSecurity = false
+			}
+
+			var tmpusersNames = [];
+			var tmpusersChatIds = [];
+
+			for (var i = 0; i < toonbotSettingsJson['Users'].length; i++) {
+				var tmp = toonbotSettingsJson['Users'][i].split("@");
+				tmpusersNames.push(tmp[0]);
+				tmpusersChatIds.push(tmp[1]);
+			}
+
+			usersNames = tmpusersNames;
+			usersChatIds = tmpusersChatIds;
+
 			
 		} catch(e) {
 		}
@@ -102,6 +126,7 @@ App {
 		registry.registerWidget("tile", tileUrl, this, null, {thumbLabel: "ToonBot", thumbIcon: thumbnailIcon, thumbCategory: "general", thumbWeight: 30, baseTileWeight: 10, thumbIconVAlignment: "center"});
 		registry.registerWidget("screen", toonbotScreenUrl, this, "toonbotScreen");
 		registry.registerWidget("screen", toonbotConfigurationScreenUrl, this, "toonbotConfigurationScreen");
+		registry.registerWidget("screen", toonbotSecurityScreenUrl, this, "toonbotSecurityScreen");
 		registry.registerWidget("systrayIcon", trayUrl, this, "toonbotTray");
 	}
 
@@ -112,6 +137,7 @@ App {
 		var tmpTrayIcon = "";
 		var tmpRefreshOn = "";
 		var tmpDebugOn = "";
+		var tmpSecurity = "";
 		
 		if (enableSystray == true) {
 			tmpTrayIcon = "Yes";
@@ -128,19 +154,70 @@ App {
 		} else {
 			tmpDebugOn = "No";
 		}
+		if (enableSecurity == true) {
+			tmpSecurity = "Yes";
+		} else {
+			tmpSecurity = "No";
+		}
 
+		var tmpUsers = [];
+		for (var i = 0; i < usersNames.length; i++) {
+			tmpUsers.push(usersNames[i] + "@" + usersChatIds[i]);
+		}
 		
  		var tmpUserSettingsJson = {
 			"Token"      				: toonbotTelegramToken,
 			"RefreshIntervalSeconds"	: toonbotRefreshIntervalSeconds,
  			"TrayIcon"      			: tmpTrayIcon,
 			"RefreshOn"					: tmpRefreshOn,
-			"DebugOn"					: tmpDebugOn
+			"DebugOn"					: tmpDebugOn,
+			"Security"					: tmpSecurity,
+			"Users" 					: tmpUsers,
 		}
 
   		var doc = new XMLHttpRequest();
    		doc.open("PUT", "file:///mnt/data/tsc/toonbot.userSettings.json");
    		doc.send(JSON.stringify(tmpUserSettingsJson ));
+	}
+
+	// Remove a user or group from the list of allowed users
+	function deleteUsers(itemIndex) {
+		if (debugOutput) console.log("********* ToonBot deleteUsers");
+
+		// delete the item at index itemIndex from both arrays		
+		var tmpUsers = [];
+		var tmpChatIds = [];
+
+		for (var i = 0; i < usersNames.length; i++) {
+			if (i !== itemIndex) {		// skip the item to be deleted
+				tmpUsers.push(usersNames[i]);
+				tmpChatIds.push(usersChatIds[i]);
+			}
+		}
+		usersNames = tmpUsers;
+		usersChatIds = tmpChatIds;
+
+		if (debugOutput) console.log("********* ToonBot deleteUsers left: " + usersNames.length );
+
+	}
+
+	// Is chat id in the list of allowed users/groups?
+	function inUsersChatIdsList(chat_id) {
+		if (debugOutput) console.log("********* ToonBot inUsersChatIdsList");
+		
+		for (var i = 0; i < usersChatIds.length; i++) {
+			if (usersChatIds[i] == chat_id ) {	
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// return number of users in list of allowed users/groups
+	function numberOfUsersInList() {
+		if (debugOutput) console.log("********* ToonBot numberOfUsersInList: " + usersNames.length );
+		
+		return usersNames.length;
 	}
 
 
@@ -306,9 +383,19 @@ App {
 
             var date = telegramData['result'][i]['message']['date'];
             var text = telegramData['result'][i]['message']['text'];
+			// when using the bot in a group then @<botusername> will be added to the text. Remove it.
+			text = text.split('@')[0]; 
+			
 			try {
-				fromName = telegramData['result'][i]['message']['from']['first_name'];
-				fromName = fromName + " " + telegramData['result'][i]['message']['from']['last_name'];
+				if (telegramData['result'][i]['message']['chat']['type'] == "private") {
+					fromName = telegramData['result'][i]['message']['chat']['first_name'];
+					fromName = fromName + " " + telegramData['result'][i]['message']['chat']['last_name'];
+				} else if (telegramData['result'][i]['message']['chat']['type'] == "group") {
+					fromName = telegramData['result'][i]['message']['chat']['title'];  // group name
+				} else {  // do not know if this is possible. Just in case
+					fromName = telegramData['result'][i]['message']['from']['first_name'];
+					fromName = fromName + " " + telegramData['result'][i]['message']['from']['last_name'];
+				}
 			}
 			catch(e) {}
 
@@ -327,8 +414,8 @@ App {
 				continue;
 			}
 
-			addCommandToList(text, update_id, fromName);
-			processCommand(text,update_id);
+			addCommandToList(text, update_id, fromName, chatId);
+			processCommand(text,update_id, chatId);
 
         }
 
@@ -611,12 +698,28 @@ App {
 		  return (parseInt(converted, 10)+0.5);
 	   }
 	}
+
+	// Is chat id allowed?
+	function chatAllowed(chat_id) {
+		if (debugOutput) console.log("********* ToonBot chatAllowed");
+		
+		if (!enableSecurity) {
+			return true;
+		}
+		return inUsersChatIdsList(chat_id);
+	}
 	
-    function processCommand(text,update_id) {
+    function processCommand(text,update_id, chat_id) {
 		var subcmd;
 		var cmd;
 
 		if (debugOutput) console.log("********* ToonBot processCommand command: " + text );
+
+		if (!chatAllowed(chat_id)) {
+			if (debugOutput) console.log("********* ToonBot processCommand chat not allowed");
+			setStatus(update_id, "Denied")
+			return;
+		}
 
 		var command = text.replace(/\s/g,'').split("_",2);
 
@@ -693,14 +796,15 @@ App {
         }
     }
 
-    function addCommandToList(command,update_id,firstName) {
+    function addCommandToList(command,update_id,firstName,chatid) {
         if (debugOutput) console.log("********* ToonBot addCommandToList");
         toonbotScreen.toonBotListModel.insert(0,{ time: (new Date().toLocaleString('nl-NL')),
                                 updateId: update_id,
                                 command: command,
                                 status: "",
                                 result: "",
-								fromname: firstName });
+								fromname: firstName,
+								chatid: chatid});
 		// remove oldest message from screen
         if (toonbotScreen.toonBotListModel.count >= numberMessagesOnScreen) {
             toonbotScreen.toonBotListModel.remove(numberMessagesOnScreen-1,1);
