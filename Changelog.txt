@@ -1,3 +1,6 @@
+Version 1.2.0
+- improved security so you can restrict the processing of messages
+
 Version 1.1.0
 - change Telegram commands to make /setcommands possible
 

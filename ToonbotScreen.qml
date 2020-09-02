@@ -45,6 +45,22 @@ Screen {
 		setEnableRefreshButtonTimer.start();  // enable button after a few seconds
 	}
 
+	function addUser(fromname, chatid) {
+	
+		// nog checken op dubbele gebruiker en max aantal
+		
+		if (app.debugOutput) console.log("********* ToonBot Screen toevoegen gebruiker");
+		var tempUsersNames = app.usersNames;
+		var tempChatIds = app.usersChatIds;
+		tempUsersNames.push(fromname);
+		tempChatIds.push(chatid);
+		app.usersNames = tempUsersNames;
+		app.usersChatIds = tempChatIds;
+
+		app.saveSettings();
+	
+	}
+
 	Text {
 		id: txtBot
 		text: app.tileBotName
@@ -175,7 +191,33 @@ Screen {
 						clip: true
                         width: isNxt ? 400 :300
                     }
-
+					
+					IconButton {
+						id: addUserButton
+						width: isNxt ? 35 : 28
+						height: isNxt ? 35 : 28
+						iconSource: "qrc:/tsc/plus.png"
+						anchors {
+							left: txtCmd.right
+							leftMargin: 6
+							top: parent.top
+						}
+						visible: (!app.inUsersChatIdsList(chatid))   // Only if users are not in de list
+						topClickMargin: 3
+						onClicked: {
+							if (app.numberOfUsersInList() < 24) {
+								qdialog.showDialog(qdialog.SizeLarge, "Bevestiging toevoegen gebruiker", "Wilt U deze gebruiker of groep toegang geven tot ToonBot:\n\nNaam:   " + fromname + "\nChat id: " + chatid ,
+													qsTr("Nee"), function(){ },
+													qsTr("Ja"), function(){ 
+														addUser(fromname,chatid);
+														app.saveSettings();
+									});
+							} else {
+								qdialog.showDialog(qdialog.SizeLarge, "Gebruikers", "Maximum aantal van 24 gebruikers of groepen is bereikt.\n" +
+																	  "Via het instellingen menu kun je gebruikers/groepen weer verwijderen", "Sluiten");							
+							}
+						}
+					}
                     Text {
                         id: txtFirstname
                         text: fromname
@@ -184,8 +226,8 @@ Screen {
 //                        color: colors.clockTileColor
                         anchors {
                             top: parent.top
-                            left: txtCmd.right
-                            leftMargin: 15
+                            left: addUserButton.right
+                            leftMargin: 5
 							right: parent.right
 							rightMargin: 5
                         }
