@@ -26,6 +26,10 @@ App {
     property variant telegramData
     property variant getMeData
 	property variant thermostatInfoData
+	property variant currentUsageData
+	property variant todayGasUsageData
+	property variant todayElectLTUsageData
+	property variant todayElectNTUsageData
 
     property string lastUpdateId		// id from last receivede telegram message, so last message will not be retrieved again
     property string chatId				// used to send message to right chat
@@ -457,6 +461,160 @@ App {
         xmlhttp.send();
     }
 
+    function getCurrentUsage() {
+		if (debugOutput) console.log("********* ToonBot getCurrentUsage");
+
+		var xmlhttp = new XMLHttpRequest();
+
+		xmlhttp.open("GET", "http://localhost/happ_pwrusage?action=GetCurrentUsage", true);
+        xmlhttp.onreadystatechange = function() {
+            if (debugOutput) console.log("********* ToonBot getCurrentUsage readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
+            if (xmlhttp.readyState === XMLHttpRequest.DONE ) {
+		
+                if (xmlhttp.status === 200) {
+                    if (debugOutput) console.log("********* ToonBot getCurrentUsage response " + xmlhttp.responseText );
+
+                    currentUsageData = JSON.parse(xmlhttp.responseText);
+
+                    if (currentUsageData['result'] === "ok" ) {
+                        if (debugOutput) console.log("********* ToonBot getCurrentUsage currentUsageData data found");
+						getTodayGasUsage();
+                    } else {
+                        if (debugOutput) console.log("********* ToonBot getCurrentUsage currentUsageData data found but status not ok");
+                    }
+                } else {
+                    if (debugOutput) console.log("********* ToonBot getCurrentUsage fout opgetreden.");
+					tileStatus = "Ophalen gegevens mislukt.....";
+                }
+            }
+        }
+        xmlhttp.send();
+    }
+
+    function getTodayGasUsage() {
+		if (debugOutput) console.log("********* ToonBot getTodayGasUsage");
+
+		var xmlhttp = new XMLHttpRequest();
+
+		var d = new Date();
+		d.setHours(-1,0,0,0)
+		var today = d.valueOf() / 1000;
+        if (debugOutput) console.log("********* ToonBot getTodayGasUsage today " + today );
+	
+		xmlhttp.open("GET", "http://localhost/hcb_rrd?action=getRrdData&loggerName=gas_quantity&rra=5yrhours&readableTime=0&nullForNaN=1&from=" + today , true);
+        xmlhttp.onreadystatechange = function() {
+            if (debugOutput) console.log("********* ToonBot getTodayGasUsage readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
+            if (xmlhttp.readyState === XMLHttpRequest.DONE ) {
+		
+                if (xmlhttp.status === 200) {
+                    if (debugOutput) console.log("********* ToonBot getTodayGasUsage response " + xmlhttp.responseText );
+
+                    todayGasUsageData = JSON.parse(xmlhttp.responseText);
+
+                    if (debugOutput) console.log("********* ToonBot getTodayGasUsage first element" + Object.keys(todayGasUsageData).sort()[0]);
+                    if (debugOutput) console.log("********* ToonBot getTodayGasUsage last element" + Object.keys(todayGasUsageData).sort().reverse()[0]);
+                    if (debugOutput) console.log("********* ToonBot getTodayGasUsage aantal elementen " + Object.keys(todayGasUsageData).length);
+
+                    if (Object.keys(todayGasUsageData).length > 1 ) {
+                        if (debugOutput) console.log("********* ToonBot getTodayGasUsage todayGasUsageData data found");
+
+                    } else {
+                        if (debugOutput) console.log("********* ToonBot getTodayGasUsage todayGasUsageData data found but status not ok");
+                    }
+                } else {
+                    if (debugOutput) console.log("********* ToonBot getTodayGasUsage fout opgetreden.");
+//					tileStatus = "Ophalen gegevens mislukt.....";
+                }
+                getTodayElectLTUsage();
+            }
+        }
+        xmlhttp.send();
+    }
+
+
+    function getTodayElectLTUsage() {
+		if (debugOutput) console.log("********* ToonBot getTodayElectLTUsage");
+
+		var xmlhttp = new XMLHttpRequest();
+
+		var d = new Date();
+		d.setHours(-1,0,0,0)
+		var today = d.valueOf() / 1000;
+        if (debugOutput) console.log("********* ToonBot getTodayElectLTUsage today " + today );
+	
+		xmlhttp.open("GET", "http://localhost/hcb_rrd?action=getRrdData&loggerName=elec_quantity_lt&rra=5yrhours&readableTime=0&nullForNaN=1&from=" + today , true);
+        xmlhttp.onreadystatechange = function() {
+            if (debugOutput) console.log("********* ToonBot getTodayElectLTUsage readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
+            if (xmlhttp.readyState === XMLHttpRequest.DONE ) {
+		
+                if (xmlhttp.status === 200) {
+                    if (debugOutput) console.log("********* ToonBot getTodayElectLTUsage response " + xmlhttp.responseText );
+
+                    todayElectLTUsageData = JSON.parse(xmlhttp.responseText);
+
+                    if (debugOutput) console.log("********* ToonBot getTodayElectLTUsage first element" + Object.keys(todayElectLTUsageData).sort()[0]);
+                    if (debugOutput) console.log("********* ToonBot getTodayElectLTUsage last element" + Object.keys(todayElectLTUsageData).sort().reverse()[0]);
+                    if (debugOutput) console.log("********* ToonBot getTodayElectLTUsage aantal elementen " + Object.keys(todayElectLTUsageData).length);
+
+                    if (Object.keys(todayElectLTUsageData).length > 1 ) {
+                        if (debugOutput) console.log("********* ToonBot getTodayElectLTUsage todayElectLTUsageData data found");
+
+                    } else {
+                        if (debugOutput) console.log("********* ToonBot getTodayElectLTUsage todayElectLTUsageData data found but status not ok");
+                    }
+                } else {
+                    if (debugOutput) console.log("********* ToonBot getTodayElectLTUsage fout opgetreden.");
+//					tileStatus = "Ophalen gegevens mislukt.....";
+                }
+                getTodayElectNTUsage();
+            }
+        }
+        xmlhttp.send();
+    }
+
+
+    function getTodayElectNTUsage() {
+		if (debugOutput) console.log("********* ToonBot getTodayElectNTUsage");
+
+		var xmlhttp = new XMLHttpRequest();
+
+		var d = new Date();
+		d.setHours(-1,0,0,0)
+		var today = d.valueOf() /1000;
+        if (debugOutput) console.log("********* ToonBot getTodayElectNTUsage today " + today );
+	
+		xmlhttp.open("GET", "http://localhost/hcb_rrd?action=getRrdData&loggerName=elec_quantity_nt&rra=5yrhours&readableTime=0&nullForNaN=1&from=" + today , true);
+        xmlhttp.onreadystatechange = function() {
+            if (debugOutput) console.log("********* ToonBot getTodayElectNTUsage readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
+            if (xmlhttp.readyState === XMLHttpRequest.DONE ) {
+		
+                if (xmlhttp.status === 200) {
+                    if (debugOutput) console.log("********* ToonBot getTodayElectNTUsage response " + xmlhttp.responseText );
+
+                    todayElectNTUsageData = JSON.parse(xmlhttp.responseText);
+
+                    if (debugOutput) console.log("********* ToonBot getTodayElectNTUsage first element" + Object.keys(todayElectNTUsageData).sort()[0]);
+                    if (debugOutput) console.log("********* ToonBot getTodayElectNTUsage last element" + Object.keys(todayElectNTUsageData).sort().reverse()[0]);
+                    if (debugOutput) console.log("********* ToonBot getTodayElectNTUsage aantal elementen " + Object.keys(todayElectNTUsageData).length);
+
+                    if (Object.keys(todayElectNTUsageData).length > 1 ) {
+                        if (debugOutput) console.log("********* ToonBot getTodayElectNTUsage todayElectNTUsageData data found");
+
+                    } else {
+                        if (debugOutput) console.log("********* ToonBot getTodayElectNTUsage todayElectNTUsageData data found but status not ok");
+                    }
+                } else {
+                    if (debugOutput) console.log("********* ToonBot getTodayElectNTUsage fout opgetreden.");
+//					tileStatus = "Ophalen gegevens mislukt.....";
+                }
+                processEnergyUsage();
+            }
+        }
+        xmlhttp.send();
+    }
+
+
+
 	function getStateText(state) {
 		var activeState;
 		
@@ -500,6 +658,74 @@ App {
 		}
 		return programState;
 	}
+
+	function processEnergyUsage() {
+		var message = "";
+		var gasUsageToday;
+		var electTodayUsage;
+		
+		var powerUsage = currentUsageData['powerUsage']['value'];
+		var powerProduction = currentUsageData['powerProduction']['value'];
+		var gasUsage = currentUsageData['gasUsage']['value'];
+
+		if (!powerUsage) {
+			powerUsage = 'N/A';
+		}
+		if (powerProduction === null) {
+			powerProduction = 'N/A';
+		}
+		if (gasUsage === null) {
+			gasUsage = 'N/A';
+		}
+
+		if (debugOutput) console.log("********* ToonBot processEnergyUsage powerUsage:" + powerUsage );
+		if (debugOutput) console.log("********* ToonBot processEnergyUsage powerProduction:" + powerProduction );
+		if (debugOutput) console.log("********* ToonBot processEnergyUsage gasUsage:" + gasUsage );
+
+		if (todayGasUsageData[Object.keys(todayGasUsageData).sort()[0]] === null) {
+			gasUsageToday = 'N/A';
+		} else {
+			var gasBeginUsageToday = todayGasUsageData[Object.keys(todayGasUsageData).sort()[0]] / 1000;
+			var gasEndUsageToday = todayGasUsageData[Object.keys(todayGasUsageData).sort().reverse()[0]] / 1000;
+			gasUsageToday = Math.round((gasEndUsageToday - gasBeginUsageToday)*100)/100;
+		}
+		
+		if (debugOutput) console.log("********* ToonBot processEnergyUsage gasUsageToday " + gasUsageToday);
+
+		if (todayElectLTUsageData[Object.keys(todayElectLTUsageData).sort()[0]] === null) {
+			electTodayUsage = 'N/A';
+		} else {
+			var electLTBeginUsageToday = todayElectLTUsageData[Object.keys(todayElectLTUsageData).sort()[0]] / 1000;
+			var electLTEndUsageToday = todayElectLTUsageData[Object.keys(todayElectLTUsageData).sort().reverse()[0]] / 1000;
+			var electLTUsageToday = electLTEndUsageToday - electLTBeginUsageToday;
+			if (debugOutput) console.log("********* ToonBot processEnergyUsage electLTUsageToday " + electLTUsageToday);
+		}
+		
+		if (todayElectNTUsageData[Object.keys(todayElectNTUsageData).sort()[0]] === null) {
+			electTodayUsage = 'N/A';
+		} else {
+			var electNTBeginUsageToday = todayElectNTUsageData[Object.keys(todayElectNTUsageData).sort()[0]] / 1000;
+			var electNTEndUsageToday = todayElectNTUsageData[Object.keys(todayElectNTUsageData).sort().reverse()[0]] / 1000;
+			var electNTUsageToday = electNTEndUsageToday - electNTBeginUsageToday;
+			if (debugOutput) console.log("********* ToonBot processEnergyUsage electNTUsageToday " + electNTUsageToday);
+		}
+
+		if (electTodayUsage !== 'N/A') {
+			electTodayUsage = Math.round((electLTUsageToday + electNTUsageToday)*1000) /1000;
+		}
+	
+		message = "<b>Status energie verbruik:</b>\n" + 
+					  "  Stroom huidig verbruik: <b>" + powerUsage + "</b> Watt\n" +
+					  "  Stroom huidig teruglevering: <b>" + powerProduction + "</b> Watt\n" +
+					  "  Stroom verbruik vandaag: <b>" + electTodayUsage + "</b> kWh\n" +
+//				      "  Gas huidig verbruik: <b>" + gasUsage + "</b> liters\n" +
+				      "  Gas verbruik vandaag: <b>" + gasUsageToday + "</b> m3\n";
+					  
+
+		sendTelegramMessage(message);
+	
+	}
+
 
 	function processThermostatInfo() {
 		var message = "";
@@ -671,6 +897,10 @@ App {
 		getThermostatInfo();
     }
 
+    function processCommandEnergie() {
+		getCurrentUsage();
+    }
+
     function processCommandProgram(subcmd) {
 		setProgram(subcmd);
 		getThermostatInfo();
@@ -746,6 +976,16 @@ App {
 					sendTelegramUnknown(text);
 				}
 				break;
+			case "/ENERGIE":
+				if (subcmd.length == 0) {
+					setStatus(update_id, "Ok")
+					sendTelegramAck(text);
+					processCommandEnergie();
+				} else {
+					setStatus(update_id, "Fout")
+					sendTelegramUnknown(text);
+				}
+				break;
 			case "/PROG":
 				if (subcmd.toUpperCase() === "C" || subcmd.toUpperCase() === "T" ||subcmd.toUpperCase() === "W" ||subcmd.toUpperCase() === "S") {
 					setStatus(update_id, "Ok")
@@ -816,6 +1056,7 @@ App {
         var messageText = "<b>Onbekend commando ontvangen: <i>" + cmd + "</i></b>\n" +
                           "De volgende commando's zijn mogelijk:\n" +
                           "  /info    Vraag Toon gegevens op\n" +
+                          "  /energie Vraag energie verbruik op\n" +
                           "  /prog_c  Activeer programma Comfort\n" +
                           "  /prog_t  Activeer programma Thuis\n" +
                           "  /prog_w  Activeer programma Weg\n" +
