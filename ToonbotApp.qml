@@ -2,6 +2,7 @@ import QtQuick 2.1
 import qb.components 1.0
 import qb.base 1.0
 import FileIO 1.0
+import BxtClient 1.0
  
 App {
 	id: toonbotApp
@@ -40,6 +41,8 @@ App {
 	property bool enableSystray : false
 	property bool enableRefresh : false					// enable retrieving Telegram messages
 	property bool enableSecurity : false				// enable security (check chatid's)
+    property string toonbotAlarmChatId : ""				// ChatId for alarms
+	property bool enableSmokeAlarm : false				// enable smoke alarm 
 
 	// user settings from config file
 	property variant toonbotSettingsJson 
@@ -57,6 +60,18 @@ App {
 
 	// signal, used to update the listview 
 	signal toonbotUpdated()
+
+	QtObject {
+		id: p
+
+		property string eventmgrUuid
+
+		property string lastNotifyUuid
+		property string lastNotifyTime
+
+	}
+
+	property variant linkedSmokedetectors: []
 
 
 	FileIO {
@@ -111,6 +126,13 @@ App {
 			usersNames = tmpusersNames;
 			usersChatIds = tmpusersChatIds;
 
+			toonbotAlarmChatId = toonbotSettingsJson['AlarmChatId'];
+
+			if (toonbotSettingsJson['SmokeAlarm'] == "Yes") {
+				enableSmokeAlarm = true
+			} else {
+				enableSmokeAlarm = false
+			}
 			
 		} catch(e) {
 		}
@@ -142,6 +164,7 @@ App {
 		var tmpRefreshOn = "";
 		var tmpDebugOn = "";
 		var tmpSecurity = "";
+		var tmpSmokeAlarm = "";
 		
 		if (enableSystray == true) {
 			tmpTrayIcon = "Yes";
@@ -168,6 +191,13 @@ App {
 		for (var i = 0; i < usersNames.length; i++) {
 			tmpUsers.push(usersNames[i] + "@" + usersChatIds[i]);
 		}
+
+		if (enableSmokeAlarm == true) {
+			tmpSmokeAlarm = "Yes";
+		} else {
+			tmpSmokeAlarm = "No";
+		}
+
 		
  		var tmpUserSettingsJson = {
 			"Token"      				: toonbotTelegramToken,
@@ -177,11 +207,17 @@ App {
 			"DebugOn"					: tmpDebugOn,
 			"Security"					: tmpSecurity,
 			"Users" 					: tmpUsers,
+			"AlarmChatId"      			: toonbotAlarmChatId,
+			"SmokeAlarm"				: tmpSmokeAlarm
+			
 		}
 
-  		var doc = new XMLHttpRequest();
-   		doc.open("PUT", "file:///mnt/data/tsc/toonbot.userSettings.json");
-   		doc.send(JSON.stringify(tmpUserSettingsJson ));
+//  		var doc = new XMLHttpRequest();
+//   		doc.open("PUT", "file:///mnt/data/tsc/toonbot.userSettings.json");
+//   		doc.send(JSON.stringify(tmpUserSettingsJson ));
+
+		toonbotSettingsFile.write(JSON.stringify(tmpUserSettingsJson ));
+
 	}
 
 	// Remove a user or group from the list of allowed users
@@ -722,7 +758,7 @@ App {
 				      "  Gas verbruik vandaag: <b>" + gasUsageToday + "</b> m3\n";
 					  
 
-		sendTelegramMessage(message);
+		sendTelegramMessage(chatId, message);
 	
 	}
 
@@ -761,7 +797,7 @@ App {
 			message = message + "  Om " + nextTime.getHours() + ":" + nextTime.getMinutes() + " op " + nextState + " en auto programma " + nextProgram;
 		}				
 
-		sendTelegramMessage(message);
+		sendTelegramMessage(chatId, message);
 	
 	}
 
@@ -1054,6 +1090,7 @@ App {
     function sendTelegramUnknown(cmd) {
         if (debugOutput) console.log("********* ToonBot sendTelegramUnknown");
         var messageText = "<b>Onbekend commando ontvangen: <i>" + cmd + "</i></b>\n" +
+                          "ChatId:" + chatId + "\n" +
                           "De volgende commando's zijn mogelijk:\n" +
                           "  /info    Vraag Toon gegevens op\n" +
                           "  /energie Vraag energie verbruik op\n" +
@@ -1069,21 +1106,21 @@ App {
                           "    /therm_19  voor thermostaat op 19 graden\n" +
                           "    /therm_195 voor thermostaat op 19.5 graden\n";
 
-        sendTelegramMessage(messageText);
+        sendTelegramMessage(chatId, messageText);
     }
 
     function sendTelegramAck(cmd) {
         if (debugOutput) console.log("********* ToonBot sendTelegramAck");
         var messageText = "Toon heeft het commando: <b><i>" + cmd + "</i></b> ontvangen."
 
-        sendTelegramMessage(messageText);
+        sendTelegramMessage(chatId, messageText);
     }
 
-    function sendTelegramMessage(messageText) {
+    function sendTelegramMessage(chatid, messageText) {
         if (debugOutput) console.log("********* ToonBot sendTelegramMessage");
 
-        if (chatId.length === 0) {
-            if (debugOutput) console.log("********* ToonBot sendTelegramMessage no chatId. Cannot send message");
+        if (chatid.length === 0) {
+            if (debugOutput) console.log("********* ToonBot sendTelegramMessage no chatid. Cannot send message");
 			return;
         }
 
@@ -1092,7 +1129,7 @@ App {
         if (debugOutput) console.log("********* ToonBot sendTelegramMessage Verzenden bericht: " + text);
 
         var xmlhttp = new XMLHttpRequest();
-        xmlhttp.open("GET", "https://api.telegram.org/bot" + toonbotTelegramToken + "/sendMessage?chat_id=" + chatId + "&text=" + text + "&parse_mode=HTML", true);
+        xmlhttp.open("GET", "https://api.telegram.org/bot" + toonbotTelegramToken + "/sendMessage?chat_id=" + chatid + "&text=" + text + "&parse_mode=HTML", true);
         xmlhttp.onreadystatechange = function() {
             if (debugOutput) console.log("********* ToonBot sendTelegramMessage readyState: " + xmlhttp.readyState + " http status: " + xmlhttp.status);
             if (xmlhttp.readyState === XMLHttpRequest.DONE ) {
@@ -1134,11 +1171,166 @@ App {
     function saveLastUpdateId(id){  
 		if (debugOutput) console.log("********* ToonBot saveLastUpdateId id: " + id);
 
-		var doc = new XMLHttpRequest();
-		doc.open("PUT", "file:///tmp/toonbot-lastUpdateId.txt");
-		doc.send(id);
+		toonbotLastUpdateIdFile.write(id);
+
+//		var doc = new XMLHttpRequest();
+//		doc.open("PUT", "file:///tmp/toonbot-lastUpdateId.txt");
+//		doc.send(id);
     }
 
+
+	function alarmtest(chatid) {
+		if (debugOutput) console.log("********* ToonBot alarmtest" );
+		alarm(chatid, "melder1", "alarmTest");
+	}
+
+	function alarm(chatid, detectorName, state) {
+		if (debugOutput) console.log("********* ToonBot alarm" );
+		var msg = "Alarm van rookmelder: " + detectorName + " en status: " + state;
+		sendTelegramMessage(chatid, msg);
+	}
+
+	function notifyUser(smokedetectorUUid, stateChangeTime, curState) {
+		if (debugOutput) console.log("********* ToonBot notifyUser" );
+
+		if ((curState === "alarmTest" || curState === "alarm") && (smokedetectorUUid !== p.lastNotifyUuid || stateChangeTime !== p.lastNotifyTime)) {
+			var smokedetectorName = "";
+
+			if (debugOutput) console.log("********* ToonBot notifyUser alarm activated" );
+
+			// Fetch the smokedetector name from the known smokedetectors
+			for (var i in linkedSmokedetectors) {
+				if (linkedSmokedetectors[i].intAddr === smokedetectorUUid) {
+					smokedetectorName = linkedSmokedetectors[i].name;
+					break;
+				}
+			}
+
+			// if the smoke detector is currently known
+			if (smokedetectorName !== "" && enableSmokeAlarm ) {
+				alarm(toonbotAlarmChatId, smokedetectorName );
+
+				p.lastNotifyTime = stateChangeTime;
+				p.lastNotifyUuid = smokedetectorUUid;
+			}
+		
+		}
+	}
+
+
+	function onEventScenariosChanged(update) {
+		if (debugOutput) console.log("********* ToonBot onEventScenariosChanged update: " + update );
+//		if (debugOutput) console.log("********* ToonBot onEventScenariosChanged json update: " + JSON.stringify(update) );
+
+		if (debugOutput) console.log("********* ToonBot onEventScenariosChanged update.name: " + update.name );
+
+		var infoChild = update.child;
+		while (infoChild) {
+			if (debugOutput) console.log("********* ToonBot onEventScenariosChanged update while 2 infoChild.name: " + infoChild.name + " value: " + infoChild.text);
+			var childChild = infoChild.child;
+			while (childChild) {
+				if (debugOutput) console.log("********* ToonBot onEventScenariosChanged update while 2 childChild.name: " + childChild.name + " value: " + childChild.text);
+				childChild = childChild.sibling;
+			}
+			infoChild = infoChild.next;
+//			infoChild = infoChild.sibling;
+		}
+
+/*
+
+qml: ********* ToonBot onEventScenariosChanged update while 2 infoChild.name: scenario value:
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: states value:
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: devUuid value: 14cd1728-1e8a-41cc-9908-52291f2dd51a
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: intAddr value: smokeScenario
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: curState value: unknown
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: lastStateChangeTime value: 0
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: sType value: smokeScenario
+qml: ********* ToonBot onEventScenariosChanged update while 2 infoChild.name: scenario value:
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: states value:
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: devUuid value: 8d520dfe-742c-4245-927e-12da65ee300e
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: intAddr value: batteryScenario
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: curState value: unknown
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: lastStateChangeTime value: 0
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: sType value: batteryScenario
+qml: ********* ToonBot onEventScenariosChanged update while 2 infoChild.name: scenario value:
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: states value:
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: devUuid value: 7fe9d6a9-c6b2-43d9-8356-c07ee8c0c634
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: intAddr value: connectedScenario
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: curState value: unknown
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: lastStateChangeTime value: 0
+qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: sType value: connectedScenario
+
+
+*/
+		
+
+		var scenario = update.getChild("scenario");
+		for (; scenario; scenario = scenario.next) {
+			if (scenario.getChildText("sType") === "smokeScenario") {
+
+				var curState = scenario.getChildText("curState");
+				var lastStateChangeByDev = scenario.getChildText("lastStateChangeByDev");
+				var lastStateChangeTime = scenario.getChildText("lastStateChangeTime");
+//TEST
+//				curState = "alarm";
+				if (debugOutput) console.log("********* ToonBot onEventScenariosChanged curState: " + curState );
+				notifyUser(lastStateChangeByDev, lastStateChangeTime, curState);
+			}
+		}
+
+//		initVarDone(2);
+
+	}
+
+	function parseSmokedetectors(update) {
+		var smokedetectorNode = update.getChild("device", 0);
+		var tmpSmokedetectors = [];
+
+		if (debugOutput) console.log("********* ToonBot parseSmokedetectors update: " + update );
+		if (debugOutput) console.log("********* ToonBot parseSmokedetectors json update: " + JSON.stringify(update) );
+		if (debugOutput) console.log("********* ToonBot parseSmokedetectors update.name: " + update.name );
+
+		while (smokedetectorNode) {
+			var smokedetector = {};
+			var childNode = smokedetectorNode.child;
+			while (childNode) {
+				smokedetector[childNode.name] = childNode.text;
+				childNode = childNode.sibling;
+				if (debugOutput) console.log("********* ToonBot parseSmokedetectors gevonden rookmelder: " + childNode.name );
+
+			}
+			tmpSmokedetectors.push(smokedetector);
+			smokedetectorNode = smokedetectorNode.next;
+		}
+		linkedSmokedetectors = tmpSmokedetectors;
+
+//		initVarDone(0);
+
+	}
+
+
+	BxtDiscoveryHandler {
+		id: eventmgrDiscoHandler
+		deviceType: "happ_eventmgr"
+		onDiscoReceived: {
+			p.eventmgrUuid = deviceUuid;
+		}
+	}
+
+	BxtDatasetHandler {
+		id: eventScenariosDsHandler
+		dataset: "eventScenarios"
+		discoHandler: eventmgrDiscoHandler
+		onDatasetUpdate: onEventScenariosChanged(update)
+	}
+
+	BxtDatasetHandler {
+		id: smokedetectorDataset
+		dataset: "smokeDetectors"
+		discoHandler: eventmgrDiscoHandler
+		onDatasetUpdate: parseSmokedetectors(update)
+	}
+	
 		
 	Timer {               // needed for waiting toonbotScreen is loaded an functions can be used and refresh
 		id: refreshGetMeTimer

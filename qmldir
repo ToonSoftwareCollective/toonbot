@@ -1,2 +1,2 @@
-module apps.nlalert
+module apps.toonbot
 ToonbotApp 1.0 ToonbotApp.qml
