@@ -1208,7 +1208,7 @@ App {
 
 			// if the smoke detector is currently known
 			if (smokedetectorName !== "" && enableSmokeAlarm ) {
-				alarm(toonbotAlarmChatId, smokedetectorName );
+				alarm(toonbotAlarmChatId, smokedetectorName, curState );
 
 				p.lastNotifyTime = stateChangeTime;
 				p.lastNotifyUuid = smokedetectorUUid;
