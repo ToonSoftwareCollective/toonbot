@@ -212,10 +212,6 @@ App {
 			
 		}
 
-//  		var doc = new XMLHttpRequest();
-//   		doc.open("PUT", "file:///mnt/data/tsc/toonbot.userSettings.json");
-//   		doc.send(JSON.stringify(tmpUserSettingsJson ));
-
 		toonbotSettingsFile.write(JSON.stringify(tmpUserSettingsJson ));
 
 	}
@@ -1173,20 +1169,16 @@ App {
 
 		toonbotLastUpdateIdFile.write(id);
 
-//		var doc = new XMLHttpRequest();
-//		doc.open("PUT", "file:///tmp/toonbot-lastUpdateId.txt");
-//		doc.send(id);
     }
-
 
 	function alarmtest(chatid) {
 		if (debugOutput) console.log("********* ToonBot alarmtest" );
-		alarm(chatid, "melder1", "alarmTest");
+		alarm(chatid, "rookmelder", "alarmTest");
 	}
 
 	function alarm(chatid, detectorName, state) {
 		if (debugOutput) console.log("********* ToonBot alarm" );
-		var msg = "Alarm van rookmelder: " + detectorName + " en status: " + state;
+		var msg = "Alarm van rookmelder: " + detectorName + " met status: " + state;
 		sendTelegramMessage(chatid, msg);
 	}
 
@@ -1224,6 +1216,7 @@ App {
 
 		if (debugOutput) console.log("********* ToonBot onEventScenariosChanged update.name: " + update.name );
 
+/* just for debug
 		var infoChild = update.child;
 		while (infoChild) {
 			if (debugOutput) console.log("********* ToonBot onEventScenariosChanged update while 2 infoChild.name: " + infoChild.name + " value: " + infoChild.text);
@@ -1236,7 +1229,9 @@ App {
 //			infoChild = infoChild.sibling;
 		}
 
-/*
+*/
+
+/*  just for debug
 
 qml: ********* ToonBot onEventScenariosChanged update while 2 infoChild.name: scenario value:
 qml: ********* ToonBot onEventScenariosChanged update while 2 childChild.name: states value:
