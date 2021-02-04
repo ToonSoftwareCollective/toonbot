@@ -16,6 +16,11 @@ Screen {
 		tokenLabel.inputText = app.toonbotTelegramToken;
 		intervalLabel.inputText = app.toonbotRefreshIntervalSeconds;
 		enableSecurityToggle.isSwitchedOn = app.enableSecurity;
+		alarmChatIdLabel.inputText = app.toonbotAlarmChatId;
+		if (app.toonbotAlarmChatId.length === 0 ) {
+			app.enableSmokeAlarm = false;
+		}
+		enableSmokeAlarmToggle.isSwitchedOn = app.enableSmokeAlarm;
 	}
 
 	onCustomButtonClicked: {
@@ -42,24 +47,15 @@ Screen {
 			intervalLabel.inputText = app.toonbotRefreshIntervalSeconds;
 		}
 	}
-	
-	Text {
-		id: title
-		text: "Invoeren token van Telegram van aangemaakte Bot via BotFather."
-       	width: isNxt ? 500 : 400
-        wrapMode: Text.WordWrap
-		font.pixelSize: isNxt ? 20 : 16
-		font.family: qfont.semiBold.name
-		color: colors.rbTitle
 
-		anchors {
-			left: tokenButton.right
-			leftMargin: 20
-			top: tokenButton.top
+	function saveAlarmChatId(text) {
+		if (text) {
+			app.toonbotAlarmChatId = text;
+			alarmChatIdLabel.inputText = app.toonbotAlarmChatId;
 		}
-
 	}
 
+	
 	EditTextLabel4421 {
 		id: tokenLabel
 		width: isNxt ? 350 : 280
@@ -97,6 +93,19 @@ Screen {
 		}
 	}
 
+	StandardButton {
+		id: btnHelpTokenTemp
+		text: "?"
+		anchors.left: tokenButton.right
+		anchors.bottom: tokenButton.bottom
+		anchors.leftMargin: 10
+		onClicked: {
+			qdialog.showDialog(qdialog.SizeLarge, "Token Telegram", "Invoeren token van Telegram van de aangemaakte Bot via BotFather. Zie ook onder knop uitleg\n", "Sluiten");
+		}
+	}
+
+
+
 	EditTextLabel4421 {
 		id: intervalLabel
 		width: tokenLabel.width
@@ -132,22 +141,86 @@ Screen {
 		}
 	}
 
-	Text {
-		id: uitlegInterval
-		text: "Geeft aan hoe vaak Telegram om een update moet worden gevraagd in seconden en dus hoe snel Toon reageert. Zet deze niet te laag ivm belasting Toon. Advies: 60 sec of hoger."
-       	width: isNxt ? 500 : 400
-		wrapMode: Text.WordWrap
-		anchors {
-			left: intervalButton.right
-			leftMargin: 20
-			top: intervalLabel.top
+	StandardButton {
+		id: btnHelpIntervalTemp
+		text: "?"
+		anchors.left: intervalButton.right
+		anchors.bottom: intervalButton.bottom
+		anchors.leftMargin: 10
+		onClicked: {
+			qdialog.showDialog(qdialog.SizeLarge, "Refresh interval", "Geeft aan hoe vaak Telegram om een update moet worden gevraagd in seconden en dus hoe snel Toon reageert. Zet deze niet te laag ivm belasting Toon. Advies: 60 sec of hoger.\n", "Sluiten");
 		}
-		font {
-			family: qfont.semiBold.name
-			pixelSize: isNxt ? 20 : 16
-		}
-		color: colors.rbTitle
 	}
+
+	EditTextLabel4421 {
+		id: alarmChatIdLabel
+		width: tokenLabel.width
+		height: isNxt ? 45 : 35
+		leftText: "Alarm ChatId:"
+		leftTextAvailableWidth: isNxt ?  175 : 140
+
+		anchors {
+			left: tokenLabel.left
+			top: intervalLabel.bottom
+			topMargin: 12
+		}
+
+		onClicked: {
+			qkeyboard.open("Alarm ChatId", alarmChatIdLabel.inputText, saveAlarmChatId);
+		}
+	}
+
+	IconButton {
+		id: alarmChatIdButton
+		width: isNxt ? 50 : 40
+
+		iconSource: "qrc:/tsc/edit.png"
+
+		anchors {
+			left: alarmChatIdLabel.right
+			leftMargin: 6
+			top: alarmChatIdLabel.top
+		}
+
+		bottomClickMargin: 3
+		onClicked: {
+			qkeyboard.open("Alarm ChatId", alarmChatIdLabel.inputText, saveAlarmChatId);
+		}
+	}
+
+	StandardButton {
+		id: btnHelpAlarmChatIdTemp
+		text: "?"
+		anchors.left: alarmChatIdButton.right
+		anchors.bottom: alarmChatIdButton.bottom
+		anchors.leftMargin: 10
+		onClicked: {
+			qdialog.showDialog(qdialog.SizeLarge, "Alarm ChatId", "Het ChatId van de Telegram gebruiker of groep waar een alarm bericht naar toe wordt gestuurd als de rookmelder afgaat.\n" +
+									"Je kunt het chatid achterhalen door onbekend commando (bijv /blabla) te sturen naar de telegram Bot. ChatId staat op de 2de regel van de respons.", "Sluiten");
+		}
+	}
+
+	StandardButton {
+		id: testAlarmButton
+		text: "Stuur test alarm bericht"
+
+		anchors {
+			left: btnHelpAlarmChatIdTemp.right
+			leftMargin: 20
+			top: btnHelpAlarmChatIdTemp.top
+		}
+
+		rightClickMargin: 2
+		bottomClickMargin: 5
+
+		selected: false
+		visible : (app.toonbotAlarmChatId.length > 0 ? true : false )
+
+		onClicked: {
+			app.alarmtest(app.toonbotAlarmChatId);
+		}
+	}
+
 
 	Text {
 		id: enableRefreshLabel
@@ -158,7 +231,7 @@ Screen {
 		font.pixelSize: isNxt ? 25 : 20
 		anchors {
 			left: tokenLabel.left
-			top: intervalLabel.bottom
+			top: alarmChatIdLabel.bottom
 			topMargin: 5
 		}
 	}
@@ -225,7 +298,7 @@ Screen {
 		id: enableSecurityLabel
 		width: isNxt ? 240 : 200
 		height: isNxt ? 45 : 36
-		text: "Beveilging aan"
+		text: "Beveiliging aan"
 		font.family: qfont.semiBold.name
 		font.pixelSize: isNxt ? 25 : 20
 		anchors {
@@ -288,28 +361,71 @@ Screen {
 		}
 	}
 
+
 	Text {
-		id: uitlegToken
-		text: "Voor de werking van deze app is het nodig dat er in Telegram een bot wordt aangemaakt.\n" +
-			  "Ga hiervoor naar https://core.telegram.org/bots#6-botfather (of google 'Telegram bot') en volg de instructies. " +
-			  "Maak een nieuwe bot aan en vul het ontvangen token hierboven bij token in.\n" +
-			  "Voeg de bot toe in Telegram en stuur het commando '/start'. Na het opslaan van de instellingen zou de app moeten werken. " +
-			  "Voor meer informatie zoek dan naar 'domoticaforum toonbot' (https://www.domoticaforum.eu/viewtopic.php?f=99&t=12734)\n" +
-			  "Verstuur een willekeurig karakter in Telegram voor een overzicht van de commando's die je kunt gebruiken."
-		  
-       	width: parent.width - 50
-		wrapMode: Text.WordWrap
+		id: enableSmokeAlarmLabel
+		width: isNxt ? 240 : 200
+		height: isNxt ? 45 : 36
+		text: "Alarm rookmelder"
+		font.family: qfont.semiBold.name
+		font.pixelSize: isNxt ? 25 : 20
 		anchors {
-			left: parent.left
-			leftMargin: 20
+			left: tokenLabel.left
 			top: enableSecurityLabel.bottom
+			topMargin: 3
 		}
-		font {
-			family: qfont.semiBold.name
-			pixelSize: isNxt ? 20 : 16
+	}
+	
+	OnOffToggle {
+		id: enableSmokeAlarmToggle
+		height: isNxt ? 45 : 36
+		anchors.left: enableSmokeAlarmLabel.right
+		anchors.leftMargin: 10
+		anchors.top: enableSmokeAlarmLabel.top
+		leftIsSwitchedOn: false
+		enabled : (app.toonbotAlarmChatId.length > 0 ? true : false ) 
+		onSelectedChangedByUser: {
+			if (isSwitchedOn) {
+				app.enableSmokeAlarm = true;
+			} else {
+				app.enableSmokeAlarm = false;
+			}
 		}
-		color: colors.rbTitle
 	}
 
+	StandardButton {
+		id: btnHelpSmokeAlarm
+		text: "?"
+		anchors.left: enableSmokeAlarmToggle.right
+		anchors.bottom: enableSmokeAlarmToggle.bottom
+		anchors.leftMargin: 10
+		onClicked: {
+			qdialog.showDialog(qdialog.SizeLarge, "Rookalarm", "Dit werkt alleen als je een gekoppelde rookmelder hebt. Als je deze toggle aanzet dan ontvang je bij een alarm (ook bij een test) een Telegram bericht. \n" +
+												  "Het alarm wordt gestuurd naar de Telegram gebruiker of groep wat hierboven als ChatId staat ingesteld.\n" +
+												  "Vul eerst het ChatId in om deze toggle te kunnen gebruiken.", "Sluiten");
+		}
+	}
+
+
+
+
+
+	StandardButton {
+		id: btnHelpUitleg
+		text: "Uitleg"
+		anchors.left: parent.left
+		anchors.bottom: parent.bottom
+		anchors.bottomMargin: 10
+		anchors.leftMargin: 25
+		width: parent.width - 50
+		onClicked: {
+			qdialog.showDialog(qdialog.SizeLarge, "Uitleg", "Voor de werking van deze app is het nodig dat er in Telegram een bot wordt aangemaakt.\n" +
+											  "Ga hiervoor naar https://core.telegram.org/bots#6-botfather (of google 'Telegram bot') en volg de instructies. " +
+											  "Maak een nieuwe bot aan en vul het ontvangen token hierboven bij token in.\n" +
+											  "Voeg de bot toe in Telegram en stuur het commando '/start'. Na het opslaan van de instellingen zou de app moeten werken. " +
+											  "Voor meer informatie zoek dan naar 'domoticaforum toonbot' (https://www.domoticaforum.eu/viewtopic.php?f=99&t=12734)\n" +
+											  "Verstuur een willekeurig karakter in Telegram voor een overzicht van de commando's die je kunt gebruiken.", "Sluiten");
+		}
+	}
 
 }
